@@ -44,6 +44,7 @@ Basic concepts are listed here ([extended](https://github.com/drivendata/cookiec
 │   ├── interim        <- Intermediate data that has been transformed.
 │   ├── processed      <- The final, canonical data sets for modeling.
 │   └── raw            <- The original, immutable data dump.
+│       └── test       <- minimal dataset for example and test purpose
 │
 ├── docs               <- A default Sphinx project; see sphinx-doc.org for details
 │
