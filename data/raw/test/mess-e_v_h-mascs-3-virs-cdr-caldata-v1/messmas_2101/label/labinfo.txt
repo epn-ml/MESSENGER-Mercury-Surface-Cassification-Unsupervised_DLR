@@ -1,0 +1,42 @@
+PDS_VERSION_ID      = PDS3
+RECORD_TYPE         = STREAM
+OBJECT              = TEXT
+  PUBLICATION_DATE  = 2017-05-12
+  NOTE              = "Description of the LABEL directory
+                       contents for MESSENGER archive volumes"
+END_OBJECT          = TEXT
+END
+
+This subdirectory contains format files (label fragments) that are
+referenced in the PDS labels for data files. These format files define the
+structure and contents of the binary data tables. Software that interprets
+PDS labels automatically include these files to determine how to read the 
+data.
+
+LABINFO.TXT: Describes this directory.
+
+UVVSHDRC.FMT: Format of the UVVS CDR science header table.
+
+UVVSSCIC.FMT: Format of the UVVS CDR science data table. 
+
+UVVSSCID.FMT: Format of the UVVS atmosphere science DDR data table. 
+
+UVVSSUMD.FMT: Format of the UVVS atmosphere summary DDR data table.
+
+UVVSHDRD_SUR.FMT: Format of the UVVS surface header DDR data table. 
+
+UVVSSCID_SUR.FMT: Format of the UVVS MUV surface science DDR data table.
+
+UVVSSCID_FUV_SUR.FMT: Format of the UVVS FUV surface science DDR data table.
+
+VIRSVC.FMT: Format of the VIRS VIS (visible wavelength) CDR data table.
+
+VIRSNC.FMT: Format of the VIRS NIR (near infrared wavelength) CDR data 
+table.
+
+VIRSVD.FMT: Format of the VIRS VIS (visible wavelength) DDR data table.
+
+VIRSND.FMT: Format of the VIRS NIR (near infrared wavelength) DDR data 
+table.
+
+UVVSVIRSD.FMT: Format of the UVVS+VIRS Combined DDR data table.
