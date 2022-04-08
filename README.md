@@ -10,22 +10,30 @@ We aim to to extract the underlying information from this MESSENGER/MASCS infrar
 ## Analysis result
 
 Expectations for the analysis result : 
+
   - Minimal : assessment if current remote sensing data from NASA/ MESSENGER could resolve different surface region of Mercury and ideas on the potential of upcoming ESA/BepiColombo mission for improvement.
   - Perfect : classifciation of Mercury surface region with uncertainties assessment, matching with laboratory measuremnts.
 
 ## Information about data set
 
-Type of data (time series, pictures, movies, etc.)
+Type of data:
 
-  - Format of data : NASA PDS3
-  - Size of data set : Several GB
-  - Access to data set: Public from NASA/PDS Geosciences Node https://pds-geosciences.wustl.edu/missions/messenger/index.htm
+  - Format of data : NASA [PDS3 Data Standards](https://pds.nasa.gov/datastandards/pds3/)
+  - Size of data set : ~ GB
+  - Access to data set: Public from [NASA/PDS Geosciences Node](https://pds-geosciences.wustl.edu/missions/messenger/index.htm)
   - input to the processing pipeline : csv/geojson
 
 ###  Directory structure
-------------
 
-The directory structure of your new project looks like this: 
+The directory structure was created automatically with the template [cookiecutter-data-science](https://github.com/drivendata/cookiecutter-data-science#readme) of [cookiecutter](https://cookiecutter.readthedocs.io/en/latest/installation.html) tool.
+
+Basic concepts are listed here ([extended](https://github.com/drivendata/cookiecutter-data-science/blob/master/docs/docs/index.md)) :
+
+- **Data is immutable**. *Don't ever edit your raw data*, especially not manually, and especially not in Excel. Don't overwrite your raw data. Don't save multiple versions of the raw data. Treat the data (and its format) as immutable.
+- **Notebooks are for exploration and communication**. Follow a naming convention that shows the owner and the order the analysis was done in.  Refactor the good parts. Don't write code to do the same task in multiple notebooks.
+- **Analysis is a directed acyclic graph (DAG)**. Often in an analysis you have long-running steps that preprocess data or train models. If these steps have been run already (and you have stored the output somewhere like the data/interim directory), you don't want to wait to rerun them every time.
+- **Keep secrets and configuration out of version control**. You really don't want to leak your AWS secret key or Postgres username and password on Github
+- **Be conservative in changing the default folder structure**. To keep this structure broadly applicable for many different kinds of projects, we think the best approach is to be liberal in changing the folders around for your project, but be conservative in changing the default structure for all projects.
 
 ```
 ├── LICENSE
@@ -73,5 +81,3 @@ The directory structure of your new project looks like this:
 │
 └── tox.ini            <- tox file with settings for running tox; see tox.readthedocs.io
 ```
-
-Directory structure was created automatically with [cookiecutter](https://cookiecutter.readthedocs.io/en/latest/installation.html) and the template [drivendata/cookiecutter-data-science](https://github.com/drivendata/cookiecutter-data-science#readme).
