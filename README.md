@@ -19,7 +19,7 @@ Expectations for the analysis result :
 Type of data:
 
   - Format of data : NASA [PDS3 Data Standards](https://pds.nasa.gov/datastandards/pds3/)
-  - Size of data set : ~ GB
+  - Size of data set :452 GB
   - Access to data set: Public from [NASA/PDS Geosciences Node](https://pds-geosciences.wustl.edu/missions/messenger/index.htm)
   - input to the processing pipeline : csv/geojson
 
