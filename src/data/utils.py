@@ -1,4 +1,5 @@
 import numpy as np
+import operator
 
 def itemgettergeneral(keys,listdict, cast_to_np_array=False):
     """itemgettergeneral accept a single key or a iterable? and extract 
