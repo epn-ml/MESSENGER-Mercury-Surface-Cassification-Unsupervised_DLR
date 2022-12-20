@@ -1,9 +1,29 @@
 # local package
--e .
+#-e .
 
 # external requirements
 click
 Sphinx
 coverage
+pytest
 flake8
 python-dotenv>=0.5.1
+# core requirements
+cartopy
+datashader
+fiona
+geopandas
+holoviews
+hvplot
+imageio
+matplotlib
+numpy
+pandas
+pillow
+scipy
+seaborn
+shapely
+scikit-image 
+scikit-learn
+umap-learn
+
