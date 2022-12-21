@@ -7,6 +7,20 @@ Repository for the Science case from DLR with to understand the composition and 
 
 We aim to to extract the underlying information from this MESSENGER/MASCS infrared dataset using unsupervsed classification spectral data and combine/compare with chemical composition and surfaces ages inferred from crater counting.
 
+## Quickstart
+
+The relevant analysis is done in `notebooks/mascs_classification_geojson.ipynb`.
+
+`mascs_classification_geojson.py` is simply the same notebook continuosly saved as python file via [jupytext](https://jupytext.readthedocs.io/en/latest/), a Jupyter add-on.
+
+This generate the figures needed to render the `notebooks/mascs_classification_tutorial.md`.
+
+`mascs_classification_tutorial.html` is the markdown file rendered with [pandoc](https://pandoc.org/) and is a different output as from [Jupyter Book](https://jupyterbook.org/en/stable/intro.html).
+
+Running the notebook could be long, we cached intermediate results `models/` and figures in `reports/figures/`.
+
+Delete all the cached data and re-run the notebook to generate everythin anew.
+
 ## Analysis result
 
 Expectations for the analysis result : 

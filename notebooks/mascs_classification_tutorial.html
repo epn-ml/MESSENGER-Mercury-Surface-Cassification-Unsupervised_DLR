@@ -1,0 +1,1241 @@
+<div class="frontmatter">
+<div class="keyword">
+<p>Semi-automated ,surface ,mapping ,unsupervised learning
+,classification ,Mercury ,Visible–Near-Infrared ,reflectance
+,spectra</p>
+</div>
+</div>
+<h1 id="sec:4b.intro">Introduction</h1>
+<p>The sheer amount of data returned by scientific missions aimed at
+exploring the solar system and observing exoplanets in recent decades
+overwhelms classical methods to explore and discover important
+scientific aspects of the target body. As an example, the Mercury data
+return for Mariner 10 was less than 100 MB, while MESSENGER delivered
+about 23 TB. Future missions are expected to exceed this limit. In
+addition, there is a trend of increasing complexity in the data itself,
+e.g., going from the of Mariner-10 to the hyperspectral datasets
+expected from BepiColombo. This situation clearly indicates that some
+form of automated analysis would be beneficial, provided it is able to
+save time without a loss of the information content of the data.</p>
+<p>Keeping the focus on hyperspectral remote sensing data, the typical
+approach for analysing this kind of data is to model the observed
+radiation with a forward radiative model<span class="citation"
+data-cites="Hamilton2005"><a href="#fn1" class="footnote-ref"
+id="fnref1" role="doc-noteref"><sup>1</sup></a></span> or attempt to
+reproduce the observed radiation by setting up relevant samples in a
+laboratory setting using chemical and/or geomorphological context
+information.<span class="citation" data-cites="Helbert2013"><a
+href="#fn2" class="footnote-ref" id="fnref2"
+role="doc-noteref"><sup>2</sup></a></span> Complex forward models that
+are able to take into account the relevant physics are typically
+computationally intensive and difficult to use to investigate the very
+large parameter space covered by hyperspectral data. This consideration
+is even more relevant for laboratory investigations : physical
+simulation needs the target to be physically fabricated, hence more and
+and more parameters means more experiments and more time. Models need
+computational power to be calculated in a reasonable amount of time, but
+could be distributed on several machines to overcome this limitation.
+This workaround is not effective for laboratory experiment, because most
+only few places meets of the environment needed for space sample
+simulation, like high-vacuum, -temperature, -radiation and so on.</p>
+<p>Without a way to efficiently and rapidly explore large amounts of
+complex data, it is likely that valuable information will be missed in
+large hyperspectral data sets.</p>
+<p>Geological maps are the gold standard for remote planetary surface
+studies, but producing them is an extremely time-consuming task. This
+process can suffer from user bias and typically only uses a few data
+points (e.g., 3-channel images) to describe different units. For
+example,<span class="citation" data-cites="Denevi2009"><a href="#fn3"
+class="footnote-ref" id="fnref3"
+role="doc-noteref"><sup>3</sup></a></span> mapped the distribution and
+extent of major terrain types of Mercury using MESSENGER Mercury Dual
+Imaging System (MDIS) camera observations of Mercury. While the camera
+has 11 spectral bands, the maps typically used for the terrain
+differentiation are RGB, where 3 representative spectral bands are
+mapped onto the three image color channels.</p>
+<p>Geomorphological maps take in account additional features like
+surface roughness and crater density as a proxy for the age, where the
+correlation between age and crater density are derived from models.<span
+class="citation"
+data-cites="blandCraterCounting2003 kerrWhoCanRead2006"><a href="#fn4"
+class="footnote-ref" id="fnref4"
+role="doc-noteref"><sup>4</sup></a></span> Automated techniques are
+becoming more common in planetary science applications, as this books
+testifies, and the aim of this chapter is to illustrate how to apply
+unsupervised learning techniques to remote sensing data. This approach
+requires minimal user interaction and yields scientifically interesting
+products like classification maps that can be directly compared with
+geomorphological maps and models. We present an analysis of spectral
+reflectance data of Mercury’s surface collected by the Mercury
+Atmospheric and Surface Composition Spectrometer (MASCS) instrument
+during orbital observations of the NASA MESSENGER mission between 2011
+and 2015.<span class="citation" data-cites="McClintock2007"><a
+href="#fn5" class="footnote-ref" id="fnref5"
+role="doc-noteref"><sup>5</sup></a></span> MASCS is a three sensor point
+spectrometer with a spectral coverage from 200 nm to 1450 nm. After a
+brief overview of the instrument and its significance for the
+investigation of Mercury (section <a href="#sec:4b.mercury_mascs"
+data-reference-type="ref" data-reference="sec:4b.mercury_mascs">2</a>),
+we will illustrate how we extract and resample the data to a format
+useful for our ML application (section <a href="#sec:4b.dataprep"
+data-reference-type="ref" data-reference="sec:4b.dataprep">3</a>). Then
+we show how to compress the data (section <a
+href="#sec:4b.dimensionality_reduction_ica" data-reference-type="ref"
+data-reference="sec:4b.dimensionality_reduction_ica">4.1</a>), how to
+project them to a lower number of dimensions (section <a
+href="#sec:4b.manifold_learning" data-reference-type="ref"
+data-reference="sec:4b.manifold_learning">4.2</a>), and finally, how to
+group “similar” data points together to discover salient spectral
+classes and their distribution on the surface. We conclude in section <a
+href="#sec:4b.conclusion" data-reference-type="ref"
+data-reference="sec:4b.conclusion">4.4</a> by providing a basic
+comparison of the result of the discovered spectral class distribution
+with maps of the surface of Mercury obtained using classical methods, in
+order to provide a first assessment of the machine learning techniques
+presented here.</p>
+<h1 id="sec:4b.mercury_mascs">Mercury and the MASCS instrument</h1>
+<p>Surface mineralogy and composition are important indicators of the
+past of a planetary body, since they provide hints about the processes
+that formed and altered the crust, which is largely the result of the
+interior evolution. For example, the possibility of identifying specific
+mineral assemblage like metamorphic rocks, which are known to form in
+specific pressure and temperature conditions, would provide indications
+on the physical processes occurring in the subsurface that produced
+those rocks and later transported the rocks to the surface.<span
+class="citation" data-cites="namurSilicateMineralogySurface2017"><a
+href="#fn6" class="footnote-ref" id="fnref6"
+role="doc-noteref"><sup>6</sup></a></span> Similarly, observations of
+hydrated minerals can be interpreted as indicating the possible past
+presence of water, as in the case of Mars.<span class="citation"
+data-cites="meslinSoilDiversityHydration2013"><a href="#fn7"
+class="footnote-ref" id="fnref7"
+role="doc-noteref"><sup>7</sup></a></span></p>
+<p>While some investigations have been published on Mercury’s surface
+mineralogy,<span class="citation"
+data-cites="e.vanderkaadenGeochemistryMineralogyPetrology2017 namurSilicateMineralogySurface2017 Vilas2016a Sprague2009"><a
+href="#fn8" class="footnote-ref" id="fnref8"
+role="doc-noteref"><sup>8</sup></a></span> its link to the endogenous
+(e.g., mantle convection) and exogenous (e.g., impacts) processes that
+operated during the history of the planet is still difficult to
+elucidate.<span class="citation"
+data-cites="padovanImpactinducedChangesSource2017"><a href="#fn9"
+class="footnote-ref" id="fnref9"
+role="doc-noteref"><sup>9</sup></a></span> A relevant example is the
+geological features known as hollows, discovered on the surface of
+Mercury in MESSENGER data. Hollows are rimless depressions with flat
+floors, surrounded by halos of high-albedo material, and typically found
+in clusters.<span class="citation" data-cites="blewett2011hollows"><a
+href="#fn10" class="footnote-ref" id="fnref10"
+role="doc-noteref"><sup>10</sup></a></span> Given this evidence, their
+formation mechanism likely includes the loss of volatile material
+through one or more processes such as sublimation, space weathering,
+outgassing, or pyroclastic flow. Hollows are associated with a
+particular spectral signature in MESSENGER’s MDIS camera,<span
+class="citation" data-cites="Vilas2016a"><a href="#fn11"
+class="footnote-ref" id="fnref11"
+role="doc-noteref"><sup>11</sup></a></span> but a specific spectral
+signature in spectrometer data could not be identified due to the coarse
+spatial resolution of the spectrometer. Overall, the only clear
+inference based on VNIR spectra obtained by the MASCS instrument is that
+Mercury’s surface shows little variation, displaying no distinct
+spectral features except for the possible indication of sulfide
+mineralogy within the hollows.<span class="citation"
+data-cites="Vilas2016a"><a href="#fn12" class="footnote-ref"
+id="fnref12" role="doc-noteref"><sup>12</sup></a></span></p>
+<p>MASCS consists of a small Cassegrain telescope with an effective
+focal length of 257 mm and a 50-mm aperture that simultaneously feeds an
+UltraViolet and Visible Spectrometer (UVVS) and a Visible and InfraRed
+Spectrograph (VIRS) channel. VIRS is a fixed concave grating
+spectrograph with a focal length of 210 mm, equipped with a beam
+splitter that simultaneously disperses the light onto a 512-element
+sensor (VIS, 300–1050 nm) and a 256-element infrared sensor array (NIR,
+850–1450 nm). Data obtained by MASCS covers almost the entire surface of
+Mercury. The spatial resolution is highly latitude dependent due to the
+very elliptical orbit of the spacecraft, but a reference value <span
+class="math inline"> ∼ 5</span> km. This low spatial resolution is a
+trade-off for higher spectral resolution and more spectral channels
+compared to the imaging instruments (i.e., the MDIS).</p>
+<p>The NIR sensor is characterized by 3 – 5 times lower signal-to-noise
+ratios (SNRs) than the VIS detector and does not add significant
+information to the VIS sensor in our tests. NIR measurement cann be
+linked and corrected to match corresponding VIS measurements
+following.<span class="citation" data-cites="Besse2015"><a href="#fn13"
+class="footnote-ref" id="fnref13"
+role="doc-noteref"><sup>13</sup></a></span> The biggest obstacle is that
+the the most accurate photometric corrections is only available for the
+VIS channel.<span class="citation"
+data-cites="domingueAnalysisMESSENGERMASCS2019 domingueAnalysisMESSENGERMASCS2019a"><a
+href="#fn14" class="footnote-ref" id="fnref14"
+role="doc-noteref"><sup>14</sup></a></span> We then analysed only data
+from VIS channel, that is enough for the sake of illustrating
+unsupervised learning techniques.</p>
+<h1 id="sec:4b.dataprep">Data preparation</h1>
+<p>In what follows, we use “feature” to refer to a single spectral
+reflectance value in a given spectrum and refer to the spectrum as an
+“observation”. An observation is taken on a particular area of the
+surface of Mercury at a given time and thus with a given illumination
+condition. MASCS data are obtained as a collection of binary files
+following the PDS3 standard.<span class="citation"
+data-cites="nasaPDSPDS3Standards2009"><a href="#fn15"
+class="footnote-ref" id="fnref15"
+role="doc-noteref"><sup>15</sup></a></span> We need to preprocess these
+to be represented as a matrix of shape <span
+class="math inline">[<em>N</em>×<em>M</em>]</span> where <span
+class="math inline"><em>M</em></span> is the number of features and
+<span class="math inline"><em>N</em></span> is the number of
+observations before they can be used as input to typical machine
+learning algorithms. A spectrum can be represented as a vector, with the
+single spectral channels being its components, i.e., <span
+class="math inline"><em>x̂</em> = (<em>x</em><sub>1</sub>,...,<em>x</em><sub>512</sub>)</span>,
+for the case where the spectrum <span
+class="math inline"><em>x̂</em></span> has 512 components. The entire
+MASCS dataset comprises about 5 million spectra, each with 512 channels.
+The coverage is not homogeneous across Mercury’s surface, as illustrated
+in Figure <a href="#fig:mascskuiper" data-reference-type="ref"
+data-reference="fig:mascskuiper">1</a>. In this section we describe how
+to create a homogeneous gridded representation of the observations
+across the entire surface so that we can apply our clustering algorithm
+to the entire surface, as shown in Figure <a href="#fig:mascsglobalgrid"
+data-reference-type="ref"
+data-reference="fig:mascsglobalgrid">2</a>.</p>
+<p><img src="images/1a_overlay_kuiper_mascs.jpg" id="fig:mascskuiper"
+width="500" /></p>
+<p><img src="images/1b_mascs_700nm_refl.png" id="fig:mascsglobalgrid"
+width="500" /></p>
+<p>A typical workflow for doing a planetary science analysis starts with
+the definition of a number of Regions Of Interests (ROIs), followed by a
+search for all data points that fall within these ROIs. This approach
+facilitates the extraction of spectral signatures that are specific to
+user-defined geological units in order to explore their properties in
+the context of different ROIs. For this chapter, we developed a workflow
+that starts by extracting the data from the original files using the
+GDAL<a href="#fn16" class="footnote-ref" id="fnref16"
+role="doc-noteref"><sup>16</sup></a> python binding. We then organized
+them in a PostgreSQL relational database <a href="#fn17"
+class="footnote-ref" id="fnref17" role="doc-noteref"><sup>17</sup></a>,
+with the PostGIS spatial extension<a href="#fn18" class="footnote-ref"
+id="fnref18" role="doc-noteref"><sup>18</sup></a>. The database is
+currently hosted at the DLR in Berlin.</p>
+<p>First, the whole dataset of <span class="math inline"> ∼ 5</span>
+million spectra is resampled to a planet-wide rectangular grid of <span
+class="math inline">1<sup>∘</sup> × 1<sup>∘</sup></span> in the
+latitudinal band between <span
+class="math inline"> ± 80<sup>∘</sup></span>. The cell longitudinal size
+varies between <span class="math inline"> ∼ 40</span> km at the equator
+to a minimum of <span class="math inline"> ∼ 10</span> km at <span
+class="math inline"> ± 80<sup>∘</sup></span>. Thus, the area spanned by
+each grid cell depends on the latitude. However, the same is true for
+the acquisition process, where higher spatial resolution is reached near
+the equator and lower resolution at the poles. Next, we resampled the
+data in the spectral dimension to a common wavelength range<a
+href="#fn19" class="footnote-ref" id="fnref19"
+role="doc-noteref"><sup>19</sup></a> from 260 nm to 1052 nm with a  4 nm
+resolution (2 nm spectral sampling), resulting in 396 spectral channels.
+This approach slightly oversamples the original 4.77 nm spectral
+resolution and removes some points from the original 200-1050 nm range.
+The resulting data matrix is expressed in tabular form, with each row
+representing a single grid cell or pixel on the surface. The elements of
+each row are the spectral reflectance values from the VIS instrument at
+396 (resampled) wavelengths. The dataset now has dimension <span
+class="math inline">[<em>N</em>×<em>M</em>]</span> where <span
+class="math inline"><em>N</em></span> is the number of grid cells (<span
+class="math inline">360 × 180 = 64, 800</span>) and <span
+class="math inline"><em>M</em></span> is the number of spectral features
+(<span class="math inline">396</span>). Due to the incomplete coverage
+and data filtering, some grid cells are empty. After removing these
+empty cells, the size of the dataset is [<span
+class="math inline">55399 × 396</span>]. As an example, Figure <a
+href="#fig:mascsglobalgrid" data-reference-type="ref"
+data-reference="fig:mascsglobalgrid">2</a> shows the distribution of the
+normalized reflectance at a fixed wavelength (700 nm).</p>
+<p>We used a recent dataset that had large-scale photometric
+corrections<span class="citation"
+data-cites="domingueAnalysisMESSENGERMASCS2019 domingueAnalysisMESSENGERMASCS2019a"><a
+href="#fn20" class="footnote-ref" id="fnref20"
+role="doc-noteref"><sup>20</sup></a></span> and thus was almost free
+from observation geometry effects. However, extreme geometry are still
+present and are typically associated with high noise and some residual
+instrumental effects. Based on our empirical tests, we filtered out
+observations with an emission/incidence angle <span
+class="math inline">≥</span><!-- -->80<span
+class="math inline"><sup>∘</sup></span>. We also calculated the median
+value per wavelength and per cell grid when constructing the global
+hyperspectral data cube and filtered out observations falling under the
+<span class="math inline">2<sup><em>n</em><em>d</em></sup></span>
+percentile and above <span
+class="math inline">99.9<sup><em>t</em><em>h</em></sup></span>
+percentile to clean some residual geometry effects. With this approach
+we create an effective noise filter while retaining enough observations
+to be able to analyse the entirety of the surface of the planet.</p>
+<h1 id="learning-from-multivariate-data">Learning from multivariate
+data</h1>
+<h2 id="sec:4b.dimensionality_reduction_ica">Dimensionality reduction:
+ICA</h2>
+<figure>
+<img src="images/ICA_reconstruction_error_zoom_included.png"
+id="fig:ICA_reconstruction_error_zoom_included" width="500"
+alt="ICA reconstruction error." />
+<figcaption aria-hidden="true">ICA reconstruction error.</figcaption>
+</figure>
+<figure>
+<img src="images/ICA_components.png" id="fig:ICA_components" width="500"
+alt="ICA independent components." />
+<figcaption aria-hidden="true">ICA independent components.</figcaption>
+</figure>
+<figure>
+<img src="images/ICA_components_map.jpg" id="fig:ICA_components_map"
+width="500" alt="ICA weights coefficients map." />
+<figcaption aria-hidden="true">ICA weights coefficients
+map.</figcaption>
+</figure>
+<p>One way to discover salient patterns in a large set of
+multidimensional data is to perform dimensionality reduction. Two
+popular techniques for dimensionality reduction are Independent
+Component Analysis (ICA) and Principal Component Analysis (PCA).</p>
+<p>PCA try to find a reduced-rank representation of the data and seeks
+for that best explains the variability of the data.</p>
+<p>ICA is a case of blind source separation techniques and assumes that
+the observations are non-Gaussian signals and statistically independent
+from each other.<span class="citation"
+data-cites="hastieElementsStatisticalLearning2009 hyvarinenIndependentComponentAnalysis2000"><a
+href="#fn21" class="footnote-ref" id="fnref21"
+role="doc-noteref"><sup>21</sup></a></span> ICA aims to find a set of
+new basis vectors as Principal Component Analysis, but with different
+assumptions and significance of the new basis. ICA search a basis where
+each vector is an independent component: if one think of a mix of
+superposed audio signals, the ICA basis will return a vector for each
+independent signal, like in the Blind Signal Separation techniques. ICA
+helps to find a representation of the data as independent
+sub-elements.</p>
+<p>In practical terms, PCA helps to compress data and ICA helps to
+separate data.</p>
+<p>The data cube obtained from previous section is then decomposed with
+ICA, trying to separate multivariate signal into additive
+sub-components.</p>
+<p>We represent the input data as <span
+class="math inline"><em>x̂</em> = (<em>x̂</em><sub>1</sub>,...,<em>x̂</em><sub><em>n</em></sub>)<sup><em>T</em></sup></span>,
+where <span class="math inline"><em>x̂</em><sub><em>i</em></sub></span>
+is a vector of <span class="math inline">396</span> spectral reflectance
+values for a given observation. ICA tries to find a linear
+transformation <span class="math inline"><em>W</em></span> so that <span
+class="math inline"><em>ŝ</em> = <em>W</em><em>x̂</em></span>, where
+<span
+class="math inline"><em>ŝ</em> = (<em>ŝ</em><sub>1</sub>,...,<em>ŝ</em><sub><em>k</em></sub>)<sup><em>T</em></sup></span>
+is a vector of maximally independent components and <span
+class="math inline"><em>k</em> ≤ <em>n</em></span>. <span
+class="math inline"><em>W</em></span> is also called the mixing matrix
+and has dimension <span
+class="math inline">[<em>f</em>×<em>k</em>]</span> = [ (data
+dimension)<span class="math inline">×</span> (number of ICA independent
+sources)]. The original sources <span
+class="math inline"><em>ŝ</em></span> can be recovered by multiplying
+the observed signals <span class="math inline"><em>x̂</em></span> with
+the inverse of the mixing matrix <span
+class="math inline"><em>W</em> = <em>A</em><sup>−1</sup></span>, also
+known as the unmixing matrix.</p>
+<p>The goal is to find a number of independent components that can
+somehow be connected to geologic patterns observed on the surface. There
+is no “true number” of independent components based on the surface
+geology, so to choose <span class="math inline"><em>k</em></span> we use
+a reconstruction error threshold that represents the noise in the data.
+This value is chosen from the residual standard deviation when
+calculating the data median for each pixel in the surface <span
+class="math inline">1<sup>∘</sup> × 1<sup>∘</sup></span> grid (see <a
+href="#sec:4b.dataprep" data-reference-type="ref"
+data-reference="sec:4b.dataprep">3</a>) and represents the sub-pixel
+variation of the data.</p>
+<p>The independent vectors <span class="math inline"><em>s</em></span>
+are function of the number <span class="math inline"><em>k</em></span>
+of component and by increasing it the reconstruction error decrease.
+Figure <a href="#fig:ICA_reconstruction_error_zoom_included"
+data-reference-type="ref"
+data-reference="fig:ICA_reconstruction_error_zoom_included">3</a> shows
+how the reconstruction error decreases wiht additional components and
+that the condition <span
+class="math inline">||<em>x</em> − <em>s</em>(<em>n</em>)|| &lt; 0.0015</span>
+is true for <span class="math inline"><em>n</em> ≥ 4</span>. The final
+result is a compression of the data from [<span
+class="math inline">55399 × 396</span>] to [<span
+class="math inline">55399 × 4</span>].</p>
+<p>In this application it is interesting to visualize the mixing weight
+matrix <span class="math inline"><em>W</em></span>, i.e., the linear
+operator that maps independent sources to the data <span
+class="math inline"><em>x̂</em></span>. The weight coefficient for each
+component <span class="math inline"><em>s</em></span> represents how
+close each data point is to the corresponding independent component.
+Figure <a href="#fig:ICA_components_map" data-reference-type="ref"
+data-reference="fig:ICA_components_map">5</a> shows the weight
+coefficients maps, illustrating the spatial distribution of each
+component. Components 1 and 2 show well-defined clusters enriched (red)
+and depleted (blue) in the corresponding component. For components 0 and
+3, the spatial distribution does not display any particular structure.
+This could be the result of some residual instrumental effects that
+introduce variance in the data.</p>
+<h2 id="sec:4b.manifold_learning">Manifold learning</h2>
+<p>In the previous section, we reduced the entire dataset to a
+representation where each pixel in the surface grid was represented by 4
+features computed using ICA instead of 396 spectral values (Figure <a
+href="#fig:ICA_components_map" data-reference-type="ref"
+data-reference="fig:ICA_components_map">5</a>). Before performing
+clustering on the dataset, we further reduced the dimensionality using
+manifold learning techniques. While it is technically possible to use
+manifold learning techniques to reduce the dimensionality without the
+ICA step, we applied ICA first because manifold learning algorithms do
+not computationally perform well for high-dimensional data. This is why
+they are usually used after a data compression step.</p>
+<p>A number of supervised and unsupervised linear dimensionality
+reduction techniques exist, including but not limited to: Isomap,
+Locally Linear Embedding (LLE), Hessian Eigenmapping, t-distributed
+Stochastic Neighbor Embedding (t-SNE), and Uniform Manifold
+Approximation and Projection (UMAP). See, e.g., the following review
+papers and the references therein :.<span class="citation"
+data-cites="tenenbaumGlobalGeometricFramework2000 roweisNonlinearDimensionalityReduction2000 donohoHessianEigenmapsLocally2003 maatenVisualizingDataUsing2008 mcinnesUMAPUniformManifold2020"><a
+href="#fn22" class="footnote-ref" id="fnref22"
+role="doc-noteref"><sup>22</sup></a></span> The linear algorithms most
+important aspect is that their results are be easier to interpret than
+non-linear algorithms, but by definition they could miss important
+non-linear structures in the data.</p>
+<p>Manifold Learning methods are a class of non-linear dimensionality
+reduction techniques. They are based on the idea that the intrinsic
+dimensionality of many data sets is actually much lower than its actual
+dimensionality.</p>
+<p>The linear dimensionality reduction techniques can be considered also
+dimensionality reduction techniques, because this terms embraces a
+broader set of algorithms. If we look at ICA and the Manifold Learning
+methods as a black box, they both compress input data. Their underlying
+assumption, the steps to find the lower dimension representation and the
+insight we gain from them are different, as we will see below.</p>
+<p>The typical manifold learning problem is unsupervised: it learns the
+high-dimensional structure of the data from the data itself, without the
+use of predetermined classes.<span class="citation"
+data-cites="leeNonlinearDimensionalityReduction2007"><a href="#fn23"
+class="footnote-ref" id="fnref23"
+role="doc-noteref"><sup>23</sup></a></span></p>
+<p>UMAP and t-SNE are popular methods for manifold learning. At its
+core, t-SNE projects high-dimensional data in a space of lower
+dimensions. t-SNE initialization aims to model the probability
+distribution that represents similarities between neighbors (data
+points). It starts with a small random Gaussian distribution and for the
+first iterations the input probabilities are multiplied by an integer
+factor to ‘exaggerate’ the distribution. t-SNE converts similarities
+between data points to joint probabilities then tries to minimize the
+divergence between the joint probabilities of the low-dimensional
+embedding and the high-dimensional data. Original data points that are
+similar are modeled by nearby points in the low dimensional embedding.
+Dissimilar data points are modeled by distant points with high
+probability in the embedded space.</p>
+<p>Compared to other techniques, t-SNE is particularly sensitive to
+local structure and can reveal the structure at many scales on a single
+map for data that lie in different manifolds or clusters. While linear
+methods such as Isomap and LLE unfold a single continuous low
+dimensional manifold, t-SNE will tend to extract clustered local groups
+of samples, since it focuses on the local structure of the data. For a
+complete overview of t-SNE we refer the reader to<span class="citation"
+data-cites="roweisNonlinearDimensionalityReduction2000"><a href="#fn24"
+class="footnote-ref" id="fnref24"
+role="doc-noteref"><sup>24</sup></a></span> and the references
+therein.</p>
+<p>While powerful, t-SNE is extremely computationally expensive and can
+take several hours on million-sample data sets where PCA will take
+seconds to minutes. In addition, the downside of using a random
+initialization is repeatability: even if you use a fixed seed, there is
+no guarantee that the final results will be the same. This means that
+t-SNE can produce results with different initialization on the same
+data, so a good practice is to run t-SNE for multiple random seeds for
+the same dataset. Thus, we chose to apply UMAP<span class="citation"
+data-cites="mcinnesUMAPUniformManifold2020"><a href="#fn25"
+class="footnote-ref" id="fnref25"
+role="doc-noteref"><sup>25</sup></a></span> since this method offers a
+number of advantages over t-SNE, most notably increased speed with
+preservation of the global data structure.</p>
+<p>We will give here an high level description of UMAP, trying not to
+make the description too complicated and not to fall into areas beyond
+this book. This can leave room for ambiguity and errors that are only
+our fault due to too much simplification of a complex topic. A rigorous
+mathematical background could be fund in<span class="citation"
+data-cites="mcinnesUMAPUniformManifold2020"><a href="#fn26"
+class="footnote-ref" id="fnref26"
+role="doc-noteref"><sup>26</sup></a></span> and nice visualisation in
+the <a
+href="UMAP%20reference%20implementation%20documentation">https://umap-learn.readthedocs.io/en/latest/how_umap_works.html</a><a
+href="#fn27" class="footnote-ref" id="fnref27"
+role="doc-noteref"><sup>27</sup></a>.</p>
+<p>UMAP uses local manifold approximations, represent those with a local
+fuzzy simplicial set representations and uses their union to construct a
+topological representation of the high dimensional data. A simplicial
+complex is a set composed of points, line segments, triangles, and their
+n-dimensional counterparts. Fuzzy topology means that being in an open
+set is no longer a binary yes or no, but instead a fuzzy value between
+zero and one. The probability of being in a ball of a given radius for
+points will decay moving away from the center of the ball. Given some
+low dimensional representation of the data, a similar process can be
+used to construct an equivalent topological representation in the other
+direction (low to higher dimension). UMAP then searches for a low
+dimensional projection of the data that has the closest possible
+equivalent fuzzy topological structure to the high dimensional one.</p>
+<p>UMAP follows the philosophy of t-SNE, but has a number of
+improvements such a different cost function and the absence of
+normalization of high- and low-dimensional probabilities. Further
+details can be found in the original paper,,<span class="citation"
+data-cites="mcinnesUMAPUniformManifold2020"><a href="#fn28"
+class="footnote-ref" id="fnref28"
+role="doc-noteref"><sup>28</sup></a></span> and its reference python
+implementation,.<span class="citation"
+data-cites="mcinnesUMAPUniformManifold2018"><a href="#fn29"
+class="footnote-ref" id="fnref29"
+role="doc-noteref"><sup>29</sup></a></span></p>
+<p>The two main hyperparameters controlling the representation learned
+by UMAP are <span
+class="math inline"><em>n</em>_<em>n</em><em>e</em><em>i</em><em>g</em><em>h</em><em>b</em><em>o</em><em>r</em><em>s</em></span>
+and <span
+class="math inline"><em>m</em><em>i</em><em>n</em>_<em>d</em><em>i</em><em>s</em><em>t</em></span><a
+href="#fn30" class="footnote-ref" id="fnref30"
+role="doc-noteref"><sup>30</sup></a>. With <span
+class="math inline"><em>n</em>_<em>n</em><em>e</em><em>i</em><em>g</em><em>h</em><em>b</em><em>o</em><em>r</em><em>s</em></span>
+one can adjust the sensitivity to local or global structures in the data
+by constraining the size of the local neighborhood. Low values
+correspond to a focus on very local structures, possibly losing the big
+picture, while large values, corresponding to larger neighborhoods, may
+miss the fine structure. The best value to choose depends on the
+particular data structure and the desired range (local vs. global) the
+application is required to probe. Values can go from 0 (local) to the
+size of the data (global). <span
+class="math inline"><em>m</em><em>i</em><em>n</em>_<em>d</em><em>i</em><em>s</em><em>t</em></span>
+regulates how points are packed together, providing the minimum distance
+apart that points are allowed to be in the low dimensional
+representation. Low values will result in more dense embeddings while
+larger values will result in more sparse embeddings.</p>
+<p>Figure <a href="#fig:ICA_coefficients_gridplot_density_complete"
+data-reference-type="ref"
+data-reference="fig:ICA_coefficients_gridplot_density_complete">6</a>
+shows the density pair plots of the four ICA weight coefficients. This
+shows that the data manifold is a slightly asymmetric 4D cloud, with
+most of the data concentrated in the center. Figure <a
+href="#fig:UMAP_gridspace_ICA_4components" data-reference-type="ref"
+data-reference="fig:UMAP_gridspace_ICA_4components">7</a> shows the UMAP
+density plot on the ICA weight coefficients for various combinations of
+the two hyperparameters described above. The projected data topology
+follow the 4D manifold, with a central core of high density observations
+and a rarefied peripheral region. We chose to use <span
+class="math inline"><em>n</em>_<em>n</em><em>e</em><em>i</em><em>g</em><em>h</em><em>b</em><em>o</em><em>r</em><em>s</em> = 4000</span>
+and <span
+class="math inline"><em>m</em><em>i</em><em>n</em>_<em>d</em><em>i</em><em>s</em><em>t</em> = 0.99</span>.
+In our particular application because local structures are not apparent
+at any level, so the only significant structure is the overall shape of
+the low dimension representation and how where the data points lies
+relative to each other.</p>
+<p>After using UMAP to further reduce the representation of the dataset
+compressed using ICA, the final dimensionality of the dataset is [<span
+class="math inline">55399 × 2</span>].</p>
+<figure>
+<img src="images/ICA_coefficients_gridplot_density_complete.png"
+id="fig:ICA_coefficients_gridplot_density_complete" width="500"
+alt="ICA_4 weight coefficient density pair-plots." />
+<figcaption aria-hidden="true"><span
+class="math inline"><em>I</em><em>C</em><em>A</em><sub>4</sub></span>
+weight coefficient density pair-plots.</figcaption>
+</figure>
+<figure>
+<img src="images/UMAP_gridspace_ICA_4components.jpg"
+id="fig:UMAP_gridspace_ICA_4components" width="500"
+alt="UMAP on ICA_4 exploring hyperparameters space." />
+<figcaption aria-hidden="true">UMAP on <span
+class="math inline"><em>I</em><em>C</em><em>A</em><sub>4</sub></span>
+exploring hyperparameters space.</figcaption>
+</figure>
+<h2 id="sec:4b.clust">Cluster analysis</h2>
+<figure>
+<img
+src="images/Classification-scatter-features-n_clusters_3_classifier-AgglomerativeClustering.jpg"
+id="fig:Classification-scatter-features-n_clusters_3_classifier-AgglomerativeClustering"
+width="500" alt="Agglomerative Clustering labels on UMAP features." />
+<figcaption aria-hidden="true">Agglomerative Clustering labels on UMAP
+features.</figcaption>
+</figure>
+<figure>
+<img
+src="images/Classification-scatter-features-n_clusters_3_classifier-K-Means.jpg"
+id="fig:Classification-scatter-features-n_clusters_3_classifier-K-Means"
+width="500" alt="K-Means labels on UMAP features." />
+<figcaption aria-hidden="true">K-Means labels on UMAP
+features.</figcaption>
+</figure>
+<figure>
+<img
+src="images/Spectral_centroids_n_clusters-3_AgglomerativeClustering.jpg"
+id="fig:Spectral_centroids_n_clusters-3_AgglomerativeClustering"
+width="500" alt="Agglomerative Clustering centroids." />
+<figcaption aria-hidden="true">Agglomerative Clustering
+centroids.</figcaption>
+</figure>
+<figure>
+<img src="images/AgglomerativeClustering_dendrogram.png"
+id="fig:AgglomerativeClustering_dendrogram" width="500"
+alt="Agglomerative Clustering dendrogram." />
+<figcaption aria-hidden="true">Agglomerative Clustering
+dendrogram.</figcaption>
+</figure>
+<p>After reducing the dimensionality of the data, our final goal is to
+identify surface regions with similar spectral properties that we can
+use to make geologic interpretations. As described in the Introduction,
+this is because geologic surfaces are generally classified into a few
+classes which are related with a geological taxonomy.</p>
+<p>Cluster analysis comprises a series of techniques that attempt to
+group similar observations in groups or clusters. The idea is that
+observations belonging to a cluster are more similar to each other than
+to those in other clusters. Before clustering the data, we first
+standardized the data by subtracting the mean and scaling them to unit
+variance. This is a standard and often necessary step for any machine
+learning algorithm.</p>
+<p>K-means clustering is a very popular clustering algorithm due to its
+computational efficiency and its many available implementations. K-means
+is a vector quantization technique, where an observation belongs to the
+cluster with the nearest mean (cluster center or cluster centroid),
+serving as a prototype of the cluster. K-means assumes that the variance
+of the distribution of each feature is spherical, that all features have
+similar variance, and that the prior probability for all <span
+class="math inline"><em>k</em></span> clusters is the same, i.e., each
+cluster has roughly equal numbers of observations.</p>
+<p>Another family of clustering algorithms is known as hierarchical
+clustering algorithms, which build nested clusters by merging or
+splitting them successively. Hierarchical agglomerative clustering
+merges closer points together, irrespective of the final cluster class
+balance. The hierarchy of clusters is represented as a dendrogram as in
+Figure <a href="#fig:AgglomerativeClustering_dendrogram"
+data-reference-type="ref"
+data-reference="fig:AgglomerativeClustering_dendrogram">11</a>. The
+final tree has one unique cluster comprising all the samples at the root
+and clusters with only one sample at the leaves (bottom of the tree).
+The branch lengths represent the distance between the child clusters.
+Small gaps connect more similar clusters and big gaps connect more
+different clusters. The cluster distance is computed as the maximum
+Euclidean distance distances between all observations of the two
+clusters.</p>
+<p>We choose the agglomerative clustering algorithm because it could be
+easily adapt to use different distance metrics and directly produce the
+tree like representation of the whole clusterisation (the dendrogram).
+It is more computationally intensive than the K-mean, but the latter
+gives directly a way to judge the correct number of cluster.</p>
+<p>We used the reconstruction error threshold to choose the value of
+<span class="math inline"><em>k</em></span>, i.e., the number of
+clusters. Interested readers could explore other methods like the
+silhouette score<a href="#fn31" class="footnote-ref" id="fnref31"
+role="doc-noteref"><sup>31</sup></a> calculated using the mean
+intra-cluster distance and the mean nearest-cluster distance for each
+sample. Figures <a
+href="#fig:Classification-scatter-features-n_clusters_3_classifier-AgglomerativeClustering"
+data-reference-type="ref"
+data-reference="fig:Classification-scatter-features-n_clusters_3_classifier-AgglomerativeClustering">8</a>
+and <a
+href="#fig:Classification-scatter-features-n_clusters_3_classifier-K-Means"
+data-reference-type="ref"
+data-reference="fig:Classification-scatter-features-n_clusters_3_classifier-K-Means">9</a>
+show the resulting cluster assignments in the UMAP embedded space when
+using aggolomerative clustering and K-means clustering with <span
+class="math inline"><em>k</em> = 3</span> clusters.</p>
+<p>The clustering methods we described are just a few of the available
+clustering techniques and methdos may have better results for different
+datasets.<span class="citation"
+data-cites="ruixuSurveyClusteringAlgorithms2005"><a href="#fn32"
+class="footnote-ref" id="fnref32"
+role="doc-noteref"><sup>32</sup></a></span> For example, when dealing
+with data containing clusters of similar density interleaved with low
+density zones (like clusters of data in some dimension with added
+noise), Density Based Spatial Clustering of Applications with Noise
+(DBSCAN) may give better results. DBSCAN separates core samples of high
+density regions and expands clusters from them.</p>
+<figure>
+<img
+src="images/Classification-map_n_clusters-3_classifier-AgglomerativeClustering.jpg"
+id="fig:Classification-map_n_clusters-3_classifier-AgglomerativeClustering_comparison"
+width="500" alt="Agglomerative Clustering 3 classes" />
+<figcaption aria-hidden="true">Agglomerative Clustering 3
+classes</figcaption>
+</figure>
+<figure>
+<img
+src="images/Classification-map_n_clusters-12_classifier-AgglomerativeClustering.jpg"
+id="fig:Classification-map_n_clusters-12_classifier-AgglomerativeClustering"
+width="500" alt="Agglomerative Clustering 12 Classes" />
+<figcaption aria-hidden="true">Agglomerative Clustering 12
+Classes</figcaption>
+</figure>
+<figure>
+<img src="images/temperature_mercury.jpg"
+id="fig:max_temperature_mercury_map" width="500"
+alt="Maximum surface temperature: red &gt;690 K, brown &gt;550 K, adapted from" />
+<figcaption aria-hidden="true">Maximum surface temperature: red <span
+class="math inline"> &gt; 690</span> K, brown <span
+class="math inline"> &gt; 550</span> K, adapted from<span
+class="citation" data-cites="Vasavada1999"><a href="#fn33"
+class="footnote-ref" id="fnref33"
+role="doc-noteref"><sup>33</sup></a></span></figcaption>
+</figure>
+<figure>
+<img src="images/Denevi_smoot_plains_2013.jpg"
+id="fig:Denevi_smoot_plains_2013" width="500"
+alt="Mercury smooth plains, adapted from" />
+<figcaption aria-hidden="true">Mercury smooth plains, adapted from<span
+class="citation" data-cites="Denevi2013"><a href="#fn34"
+class="footnote-ref" id="fnref34"
+role="doc-noteref"><sup>34</sup></a></span></figcaption>
+</figure>
+<h2 id="sec:4b.conclusion">Conclusion</h2>
+<p>The result of our analysis is a set of cluster maps such as in Fig.<a
+href="#fig:Classification-map_n_clusters-3_classifier-AgglomerativeClustering_comparison"
+data-reference-type="ref"
+data-reference="fig:Classification-map_n_clusters-3_classifier-AgglomerativeClustering_comparison">12</a>.
+These maps can be directly compared with with models (i.e. surface
+maximum temperature, roughness or age ) and with expert-generated maps
+that are based on different methods of analysis described in the
+Introduction. Fig.<a
+href="#fig:Classification-map_n_clusters-12_classifier-AgglomerativeClustering"
+data-reference-type="ref"
+data-reference="fig:Classification-map_n_clusters-12_classifier-AgglomerativeClustering">13</a>
+shows the finer clusters defined when splitting the data in 12 clusters.
+The structure is essentially the same as the 3-cluster case, indicating
+that this reduction does not appreciably affect the information content
+gained from the cluster map. The spatial distribution of the red cluster
+in the north compares favourably with the location of younger volcanic
+smooth plains plotted in Figure <a href="#fig:Denevi_smoot_plains_2013"
+data-reference-type="ref"
+data-reference="fig:Denevi_smoot_plains_2013">15</a>. These plains are
+widespread on Mercury, but are more concentrated in the north and in the
+surroundings of the Caloris impact basin (30.5<span
+class="math inline"><sup>∘</sup></span>N 189.8<span
+class="math inline"><sup>∘</sup></span>W) and are most likely of
+volcanic origin. The smooth plains are younger than the Caloris basin,
+as indicated by the lower crater densities in those regions.<span
+class="citation" data-cites="Denevi2013"><a href="#fn35"
+class="footnote-ref" id="fnref35"
+role="doc-noteref"><sup>35</sup></a></span> The basin floor is filled by
+geologically distinct plains implanted after the impact at the origin of
+the basin itself.</p>
+<p>The result of our works is the division of the surface in three
+classes or clusters, that capture some inherent properties of Mercury in
+the VNIR range as measured by MASCS instrument.</p>
+<p>The red clusters (fig.<a
+href="#fig:Classification-map_n_clusters-3_classifier-AgglomerativeClustering_comparison"
+data-reference-type="ref"
+data-reference="fig:Classification-map_n_clusters-3_classifier-AgglomerativeClustering_comparison">12</a>)
+are concentrated outside the hot poles, hinting at the possible role
+that thermal processing could play in modifying the spectra of the
+surface.</p>
+<p>The representative spectra for those classes differs mostly for the
+spectral tilt, which is the ratio between longer (redder) and shorter
+(bluer) wavelengths, as shown in Figure <a
+href="#fig:Spectral_centroids_n_clusters-3_AgglomerativeClustering"
+data-reference-type="ref"
+data-reference="fig:Spectral_centroids_n_clusters-3_AgglomerativeClustering">10</a>.
+It is important to stress that this is a general property of Mercury
+MASCS spectra. They do not show any significant absorption bands, thus
+it is difficult to match the spectra with known mineral assemblages.
+This is even more pronounced taking the average of a great number of
+spectra, washing out single spectral characteristic. This is not always
+the case, i.e.<span class="citation" data-cites="Bandfield2000"><a
+href="#fn36" class="footnote-ref" id="fnref36"
+role="doc-noteref"><sup>36</sup></a></span> did found spectral classes
+on Mars and linked them to terrestrial basaltic and an andesitic
+composition, roughly related to the Martian dichotomy and older/younger
+surfaces.</p>
+<p>In the case of Mercury, several factors are in play.</p>
+<p>Mercury’s 3:2 spin–orbit resonance with the Sun creates the
+characteristic surface temperature distribution shown in Figure <a
+href="#fig:max_temperature_mercury_map" data-reference-type="ref"
+data-reference="fig:max_temperature_mercury_map">14</a>, which maps the
+maximum temperature reached at each point of the surface, based solely
+on solar irradiation. There are two hot poles around 0<span
+class="math inline"><sup>∘</sup></span> and 180<span
+class="math inline"><sup>∘</sup></span>.</p>
+<p>Thermal processing is known to tilt spectra to higher reddening,
+i.e., steeper spectra.<span class="citation"
+data-cites="Maturilli2014a"><a href="#fn37" class="footnote-ref"
+id="fnref37" role="doc-noteref"><sup>37</sup></a></span></p>
+<p>Solar wind irradiation also concurs to redden the spectra, even
+though the literature on this topic focused mostly on asteroids with
+high-Fe content, while Mercury’s surface is extremely low in iron.<span
+class="citation" data-cites="nittlerGlobalMajorelementMaps2020"><a
+href="#fn38" class="footnote-ref" id="fnref38"
+role="doc-noteref"><sup>38</sup></a></span> Mercury reflectance spectra
+are also extremely dark and amorphous carbon has been proposed as
+darkening agent.<span class="citation" data-cites="Peplowski2016"><a
+href="#fn39" class="footnote-ref" id="fnref39"
+role="doc-noteref"><sup>39</sup></a></span></p>
+<p>To summarize, dimensionality reduction, manifold learning, and
+cluster analysis techniques are powerful tools to explore large sets of
+uncategorized planetary data. The workflow we presented could be easily
+extended to include additional instrument data, for example including
+data on the same geographical locations of chemical composition
+extracted from the X-Ray Spectrometer (XRS).<span class="citation"
+data-cites="Nittler2011 nittlerGlobalMajorelementMaps2020"><a
+href="#fn40" class="footnote-ref" id="fnref40"
+role="doc-noteref"><sup>40</sup></a></span> While we focused only on
+reflectance data in this study, the technique of data fusion could
+further promote the discovery of scientifically-interesting patterns in
+the data, thus helping to understand complex physical mechanisms that
+could not be revealed by data coming from a single instrument.</p>
+<h2 id="sec:4b.acknowledgment">Acknowledgment</h2>
+<p>The code and data used in this work is available as python jupyter
+notebook on the github public repository <a
+href="https://github.com/epn-ml/MESSENGER-Mercury-Surface-Cassification-Unsupervised_DLR">MESSENGER-Mercury-Surface-Cassification-Unsupervised_DLR</a><a
+href="#fn41" class="footnote-ref" id="fnref41"
+role="doc-noteref"><sup>41</sup></a> funded under the European Union’s
+Horizon 2020 research and innovation programme grant agreement No
+871149. The Working Package "Machine Learning Solutions for Data
+Analysis and Exploitation in Planetary Science" aims to develop and
+implement an ambitious sustainable ML toolset, tailored for the needs of
+the planetary science community by analysing a representative set of
+scientific cases.</p>
+
+
+<h2 class="unnumbered" id="sec:bibliography">Bibliography</h2>
+<div id="refs" class="references csl-bib-body hanging-indent"
+role="doc-bibliography">
+<div id="ref-Bandfield2000" class="csl-entry" role="doc-biblioentry">
+Bandfield, JL, VE Hamilton, and PR Christensen. <span>“A <span>Global
+View</span> of <span>Martian Surface Compositions</span> from
+<span>MGS</span>-<span>TES</span>.”</span> <em>Science</em> 287, no.
+March (2000): 1626–1630. doi:<a
+href="https://doi.org/fjh6x2">fjh6x2</a>.
+</div>
+<div id="ref-Besse2015" class="csl-entry" role="doc-biblioentry">
+Besse, S., A. Doressoundiram, and J. Benkhoff. <span>“Spectroscopic
+Properties of Explosive Volcanism Within the <span>Caloris</span> Basin
+with <span>MESSENGER</span> Observations.”</span> <em>Journal of
+Geophysical Research: Planets</em> 120, no. 12 (December 2015):
+2102–2117. doi:<a
+href="https://doi.org/10.1002/2015JE004819">10.1002/2015JE004819</a>.
+</div>
+<div id="ref-blandCraterCounting2003" class="csl-entry"
+role="doc-biblioentry">
+Bland, Phil. <span>“Crater Counting.”</span> <em>Astronomy &amp;
+Geophysics</em> 44, no. 4 (August 2003): 4.21–4.21. doi:<a
+href="https://doi.org/dsw66x">dsw66x</a>.
+</div>
+<div id="ref-blewett2011hollows" class="csl-entry"
+role="doc-biblioentry">
+Blewett, D. T., N. L. Chabot, B. W. Denevi, C. M. Ernst, J. W. Head, N.
+R. Izenberg, S. L. Murchie, et al. <span>“Hollows on
+<span>Mercury</span>: <span>MESSENGER Evidence</span> for
+<span>Geologically Recent Volatile</span>-<span>Related
+Activity</span>.”</span> <em>Science</em> 333, no. 6051 (September
+2011): 1856–1859. doi:<a href="https://doi.org/d8hhvw">d8hhvw</a>.
+</div>
+<div id="ref-coenenUnderstandingUMAP2019a" class="csl-entry"
+role="doc-biblioentry">
+Coenen, Andy, and Adam Pearce. <span>“Understanding
+<span>UMAP</span>.”</span>
+https://pair-code.github.io/understanding-umap/, 2019.
+</div>
+<div id="ref-Denevi2013" class="csl-entry" role="doc-biblioentry">
+Denevi, Brett W., Carolyn M. Ernst, Heather M. Meyer, Mark S. Robinson,
+Scott L. Murchie, Jennifer L. Whitten, James W. Head, et al. <span>“The
+Distribution and Origin of Smooth Plains on
+<span>Mercury</span>.”</span> <em>Journal of Geophysical Research:
+Planets</em> 118, no. 5 (May 2013): 891–907. doi:<a
+href="https://doi.org/10.1002/jgre.20075">10.1002/jgre.20075</a>.
+</div>
+<div id="ref-Denevi2009" class="csl-entry" role="doc-biblioentry">
+Denevi, Brett W., Mark S. Robinson, David T. Blewett, Deborah L.
+Domingue, James W. Head III, Timothy J. McCoy, Ralph L. McNutt Jr.,
+Scott L. Murchie, and Sean C. Solomon. <span>“<span>MESSENGER</span>
+Global Color Observations: Implications for the Composition and
+Evolution of <span>Mercury</span>’s Crust.”</span> In <em>Lunar and
+<span>Planetary Science Conference</span></em>, 1–2, 2009.
+</div>
+<div id="ref-domingueAnalysisMESSENGERMASCS2019" class="csl-entry"
+role="doc-biblioentry">
+Domingue, Deborah L., Mario D’Amore, Sabrina Ferrari, Jörn Helbert, and
+Noam R. Izenberg. <span>“Analysis of the <span>MESSENGER MASCS</span>
+Photometric Targets Part <span>I</span>: <span>Photometric</span>
+Standardization for Examining Spectral Variability Across
+<span>Mercury</span>’s Surface.”</span> <em>Icarus</em> 319 (February
+2019): 247–263. doi:<a href="https://doi.org/gh3dp5">gh3dp5</a>.
+</div>
+<div id="ref-domingueAnalysisMESSENGERMASCS2019a" class="csl-entry"
+role="doc-biblioentry">
+———. <span>“Analysis of the <span>MESSENGER MASCS</span> Photometric
+Targets Part <span>II</span>: <span>Photometric</span> Variability
+Between Geomorphological Units.”</span> <em>Icarus</em> 319 (February
+2019): 140–246. doi:<a href="https://doi.org/gh3dp6">gh3dp6</a>.
+</div>
+<div id="ref-donohoHessianEigenmapsLocally2003" class="csl-entry"
+role="doc-biblioentry">
+Donoho, David L., and Carrie Grimes. <span>“Hessian Eigenmaps:
+<span>Locally</span> Linear Embedding Techniques for High-Dimensional
+Data.”</span> <em>Proceedings of the National Academy of Sciences</em>
+100, no. 10 (May 2003): 5591–5596. doi:<a
+href="https://doi.org/cnjc4z">cnjc4z</a>.
+</div>
+<div id="ref-e.vanderkaadenGeochemistryMineralogyPetrology2017"
+class="csl-entry" role="doc-biblioentry">
+E. Vander Kaaden, Kathleen, Francis M. McCubbin, Larry R. Nittler,
+Patrick N. Peplowski, Shoshana Z. Weider, Elizabeth A. Frank, and
+Timothy J. McCoy. <span>“Geochemistry, Mineralogy, and Petrology of
+Boninitic and Komatiitic Rocks on the Mercurian Surface:
+<span>Insights</span> into the Mercurian Mantle.”</span> <em>Icarus</em>
+285 (March 2017): 155–168. doi:<a
+href="https://doi.org/gg3j22">gg3j22</a>.
+</div>
+<div id="ref-Hamilton2005" class="csl-entry" role="doc-biblioentry">
+Hamilton, Victoria E., Harry Y. McSween, and Bruce Hapke.
+<span>“Mineralogy of <span>Martian</span> Atmospheric Dust Inferred from
+Thermal Infrared Spectra of Aerosols.”</span> <em>Journal of Geophysical
+Research</em> 110, no. E12 (2005): 1–11. doi:<a
+href="https://doi.org/bhsb7j">bhsb7j</a>.
+</div>
+<div id="ref-hastieElementsStatisticalLearning2009" class="csl-entry"
+role="doc-biblioentry">
+Hastie, Trevor, Robert Tibshirani, and Jerome Friedman. <em>The
+<span>Elements</span> of <span>Statistical Learning</span>: <span>Data
+Mining</span>, <span>Inference</span>, and <span>Prediction</span>,
+<span>Second Edition</span></em>. Second. Springer <span>Series</span>
+in <span>Statistics</span>. <span>New York</span>:
+<span>Springer-Verlag</span>, 2009. doi:<a
+href="https://doi.org/10.1007/978-0-387-84858-7">10.1007/978-0-387-84858-7</a>.
+</div>
+<div id="ref-Helbert2013" class="csl-entry" role="doc-biblioentry">
+Helbert, Jörn, Alessandro Maturilli, Mario D’Amore, and M. D’Amore.
+<span>“Visible and Near-Infrared Reflectance Spectra of Thermally
+Processed Synthetic Sulfides as a Potential Analog for the Hollow
+Forming Materials on <span>Mercury</span>.”</span> <em>Earth and
+Planetary Science Letters</em> 369–370 (May 2013): 233–238. doi:<a
+href="https://doi.org/gbddt9">gbddt9</a>.
+</div>
+<div id="ref-hyvarinenIndependentComponentAnalysis2000"
+class="csl-entry" role="doc-biblioentry">
+Hyvärinen, A., and E. Oja. <span>“Independent Component Analysis:
+Algorithms and Applications.”</span> <em>Neural Networks</em> 13, no. 4
+(June 2000): 411–430. doi:<a href="https://doi.org/cx35gq">cx35gq</a>.
+</div>
+<div id="ref-kerrWhoCanRead2006" class="csl-entry"
+role="doc-biblioentry">
+Kerr, Richard A. <span>“Who <span>Can Read</span> the <span>Martian
+Clock</span>?”</span> <em>Science</em> 312, no. 5777 (May 2006):
+1132–1133. doi:<a href="https://doi.org/b6v8tt">b6v8tt</a>.
+</div>
+<div id="ref-leeNonlinearDimensionalityReduction2007" class="csl-entry"
+role="doc-biblioentry">
+Lee, John A., and Michel Verleysen. <em>Nonlinear <span>Dimensionality
+Reduction</span></em>. Information <span>Science</span> and
+<span>Statistics</span>. <span>New York</span>:
+<span>Springer-Verlag</span>, 2007. doi:<a
+href="https://doi.org/10.1007/978-0-387-39351-3">10.1007/978-0-387-39351-3</a>.
+</div>
+<div id="ref-maatenVisualizingDataUsing2008" class="csl-entry"
+role="doc-biblioentry">
+Maaten, Laurens van der, and Geoffrey Hinton. <span>“Visualizing
+<span>Data</span> Using t-<span>SNE</span>.”</span> <em>Journal of
+Machine Learning Research</em> 9, no. 86 (2008): 2579–2605.
+</div>
+<div id="ref-Maturilli2014a" class="csl-entry" role="doc-biblioentry">
+Maturilli, A., J. Helbert, J. M. St. John, J. W. Head, W. M. Vaughan, M.
+D’Amore, M. Gottschalk, and S. Ferrari. <span>“Komatiites as
+<span>Mercury</span> Surface Analogues: <span>Spectral</span>
+Measurements at <span>PEL</span>.”</span> <em>Earth and Planetary
+Science Letters</em> 398 (2014). doi:<a
+href="https://doi.org/gg3jwp">gg3jwp</a>.
+</div>
+<div id="ref-McClintock2007" class="csl-entry" role="doc-biblioentry">
+McClintock, William E., and Mark R. Lankton. <span>“The Mercury
+Atmospheric and Surface Composition Spectrometer for the
+<span>MESSENGER</span> Mission.”</span> <em>Space Science Reviews</em>
+131, no. 1–4 (2007): 481–521. doi:<a
+href="https://doi.org/btc6f6">btc6f6</a>.
+</div>
+<div id="ref-mcinnesUMAPUniformManifold2018" class="csl-entry"
+role="doc-biblioentry">
+McInnes, Leland. <span>“<span>UMAP</span>: <span>Uniform Manifold
+Approximation</span> and <span>Projection</span> for <span>Dimension
+Reduction</span> Umap 0.5 Documentation.”</span>
+https://umap-learn.readthedocs.io/en/latest/index.html, 2018.
+</div>
+<div id="ref-mcinnesUMAPUniformManifold2020" class="csl-entry"
+role="doc-biblioentry">
+McInnes, Leland, John Healy, and James Melville.
+<span>“<span>UMAP</span>: <span>Uniform Manifold Approximation</span>
+and <span>Projection</span> for <span>Dimension
+Reduction</span>.”</span> <em>arXiv:1802.03426 [Cs, Stat]</em>
+(September 2020). <a
+href="https://arxiv.org/abs/1802.03426">https://arxiv.org/abs/1802.03426</a>.
+</div>
+<div id="ref-meslinSoilDiversityHydration2013" class="csl-entry"
+role="doc-biblioentry">
+Meslin, P.-Y., O. Gasnault, O. Forni, S. Schröder, A. Cousin, G. Berger,
+S. M. Clegg, et al. <span>“Soil <span>Diversity</span> and
+<span>Hydration</span> as <span>Observed</span> by <span>ChemCam</span>
+at <span>Gale Crater</span>, <span>Mars</span>.”</span> <em>Science</em>
+341, no. 6153 (September 2013). doi:<a
+href="https://doi.org/f3sdqx">f3sdqx</a>.
+</div>
+<div id="ref-namurSilicateMineralogySurface2017" class="csl-entry"
+role="doc-biblioentry">
+Namur, Olivier, and Bernard Charlier. <span>“Silicate Mineralogy at the
+Surface of <span>Mercury</span>.”</span> <em>Nature Geoscience</em> 10,
+no. 1 (January 2017): 9–13. doi:<a
+href="https://doi.org/f9r3qp">f9r3qp</a>.
+</div>
+<div id="ref-nasaPDSPDS3Standards2009" class="csl-entry"
+role="doc-biblioentry">
+NASA. <span>“<span>PDS</span>: <span>PDS3 Standards
+Reference</span>.”</span>
+https://pds.nasa.gov/datastandards/pds3/standards/, 2009.
+</div>
+<div id="ref-Nittler2011" class="csl-entry" role="doc-biblioentry">
+Nittler, L. R., R. D. Starr, S. Z. Weider, T. J. McCoy, W. V. Boynton,
+D. S. Ebel, C. M. Ernst, et al. <span>“The
+<span>Major</span>-<span>Element Composition</span> of
+<span>Mercury</span>’s <span>Surface</span> from <span>MESSENGER
+X</span>-Ray <span>Spectrometry</span>.”</span> <em>Science</em> 333,
+no. 6051 (September 2011): 1847–1850. doi:<a
+href="https://doi.org/bps3b8">bps3b8</a>.
+</div>
+<div id="ref-nittlerGlobalMajorelementMaps2020" class="csl-entry"
+role="doc-biblioentry">
+Nittler, Larry R., Elizabeth A. Frank, Shoshana Z. Weider, Ellen
+Crapster-Pregont, Audrey Vorburger, Richard D. Starr, and Sean C.
+Solomon. <span>“Global Major-Element Maps of Mercury from Four Years of
+<span>MESSENGER X</span>-<span>Ray Spectrometer</span>
+Observations.”</span> <em>Icarus</em> (February 2020): 113716. doi:<a
+href="https://doi.org/ggm5sv">ggm5sv</a>.
+</div>
+<div id="ref-padovanImpactinducedChangesSource2017" class="csl-entry"
+role="doc-biblioentry">
+Padovan, Sebastiano, Nicola Tosi, Ana-Catalina Plesa, and Thomas Ruedas.
+<span>“Impact-Induced Changes in Source Depth and Volume of Magmatism on
+<span>Mercury</span> and Their Observational Signatures.”</span>
+<em>Nature Communications</em> 8, no. 1 (December 2017): 1945. doi:<a
+href="https://doi.org/gcn9p2">gcn9p2</a>.
+</div>
+<div id="ref-Peplowski2016" class="csl-entry" role="doc-biblioentry">
+Peplowski, Patrick N., Rachel L. Klima, David J. Lawrence, Carolyn M.
+Ernst, Brett W. Denevi, Elizabeth A. Frank, John O. Goldsten, Scott L.
+Murchie, Larry R. Nittler, and Sean C. Solomon. <span>“Remote Sensing
+Evidence for an Ancient Carbon-Bearing Crust on
+<span>Mercury</span>.”</span> <em>Nature Geoscience</em> 9, no. 4 (March
+2016): 273–276. doi:<a
+href="https://doi.org/10.1038/ngeo2669">10.1038/ngeo2669</a>.
+</div>
+<div id="ref-roweisNonlinearDimensionalityReduction2000"
+class="csl-entry" role="doc-biblioentry">
+Roweis, Sam T., and Lawrence K. Saul. <span>“Nonlinear
+<span>Dimensionality Reduction</span> by <span>Locally Linear
+Embedding</span>.”</span> <em>Science</em> 290, no. 5500 (December
+2000): 2323–2326. doi:<a href="https://doi.org/cbws2r">cbws2r</a>.
+</div>
+<div id="ref-ruixuSurveyClusteringAlgorithms2005" class="csl-entry"
+role="doc-biblioentry">
+Rui Xu, and D. Wunsch. <span>“Survey of Clustering Algorithms.”</span>
+<em>IEEE Transactions on Neural Networks</em> 16, no. 3 (May 2005):
+645–678. doi:<a href="https://doi.org/c3pfgf">c3pfgf</a>.
+</div>
+<div id="ref-Sprague2009" class="csl-entry" role="doc-biblioentry">
+Sprague, A. L., K. L. Donaldson Hanna, R. W. H. Kozlowski, J Helbert, A
+Maturilli, J. B. Warell, and J. L. Hora. <span>“Spectral Emissivity
+Measurements of <span>Mercury</span>’s Surface Indicate <span>Mg</span>-
+and <span>Ca</span>-Rich Mineralogy, <span>K</span>-Spar,
+<span>Na</span>-Rich Plagioclase, Rutile, with Possible Perovskite, and
+Garnet.”</span> <em>Planetary and Space Science</em> 57, no. 3 (March
+2009): 364–383. doi:<a href="https://doi.org/fbd9jq">fbd9jq</a>.
+</div>
+<div id="ref-tenenbaumGlobalGeometricFramework2000" class="csl-entry"
+role="doc-biblioentry">
+Tenenbaum, Joshua B., Vin de Silva, and John C. Langford. <span>“A
+<span>Global Geometric Framework</span> for <span>Nonlinear
+Dimensionality Reduction</span>.”</span> <em>Science</em> 290, no. 5500
+(December 2000): 2319–2323. doi:<a
+href="https://doi.org/cz8wgk">cz8wgk</a>.
+</div>
+<div id="ref-Vasavada1999" class="csl-entry" role="doc-biblioentry">
+Vasavada, a. <span>“Near-<span>Surface Temperatures</span> on
+<span>Mercury</span> and the <span>Moon</span> and the
+<span>Stability</span> of <span>Polar Ice Deposits</span>.”</span>
+<em>Icarus</em> 141, no. 2 (October 1999): 179–193. doi:<a
+href="https://doi.org/b9fhjd">b9fhjd</a>.
+</div>
+<div id="ref-Vilas2016a" class="csl-entry" role="doc-biblioentry">
+Vilas, Faith, Deborah L. Domingue, Jörn Helbert, Mario D’Amore,
+Alessandro Maturilli, Rachel L. Klima, Karen R. Stockstill-Cahill, et
+al. <span>“Mineralogical Indicators of <span>Mercury</span>’s Hollows
+Composition in <span>MESSENGER</span> Color Observations.”</span>
+<em>Geophysical Research Letters</em> 43, no. 4 (February 2016):
+1450–1456. doi:<a href="https://doi.org/gg3j2v">gg3j2v</a>.
+</div>
+</div>
+
+<section id="footnotes" class="footnotes footnotes-end-of-document"
+role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1"><p>Like Hapke, as in Hamilton, McSween, and Hapke,
+<span>“Mineralogy of <span>Martian</span> Atmospheric Dust Inferred from
+Thermal Infrared Spectra of Aerosols.”</span><a href="#fnref1"
+class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2"><p>E.g., Helbert et al., <span>“Visible and Near-Infrared
+Reflectance Spectra of Thermally Processed Synthetic Sulfides as a
+Potential Analog for the Hollow Forming Materials on
+<span>Mercury</span>.”</span><a href="#fnref2" class="footnote-back"
+role="doc-backlink">↩︎</a></p></li>
+<li id="fn3"><p>Denevi et al., <span>“<span>MESSENGER</span> Global
+Color Observations.”</span><a href="#fnref3" class="footnote-back"
+role="doc-backlink">↩︎</a></p></li>
+<li id="fn4"><p>E.g., Bland, <span>“Crater Counting”</span>; Kerr,
+<span>“Who <span>Can Read</span> the <span>Martian
+Clock</span>?”</span><a href="#fnref4" class="footnote-back"
+role="doc-backlink">↩︎</a></p></li>
+<li id="fn5"><p>McClintock and Lankton, <span>“The Mercury Atmospheric
+and Surface Composition Spectrometer for the <span>MESSENGER</span>
+Mission.”</span><a href="#fnref5" class="footnote-back"
+role="doc-backlink">↩︎</a></p></li>
+<li id="fn6"><p>E.g., Namur and Charlier, <span>“Silicate Mineralogy at
+the Surface of <span>Mercury</span>.”</span><a href="#fnref6"
+class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn7"><p>Meslin et al., <span>“Soil <span>Diversity</span> and
+<span>Hydration</span> as <span>Observed</span> by <span>ChemCam</span>
+at <span>Gale Crater</span>, <span>Mars</span>.”</span><a href="#fnref7"
+class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn8"><p>E.g., E. Vander Kaaden et al., <span>“Geochemistry,
+Mineralogy, and Petrology of Boninitic and Komatiitic Rocks on the
+Mercurian Surface”</span>; Namur and Charlier, <span>“Silicate
+Mineralogy at the Surface of <span>Mercury</span>”</span>; Vilas et al.,
+<span>“Mineralogical Indicators of <span>Mercury</span>’s Hollows
+Composition in <span>MESSENGER</span> Color Observations”</span>;
+Sprague et al., <span>“Spectral Emissivity Measurements of
+<span>Mercury</span>’s Surface Indicate <span>Mg</span>- and
+<span>Ca</span>-Rich Mineralogy, <span>K</span>-Spar,
+<span>Na</span>-Rich Plagioclase, Rutile, with Possible Perovskite, and
+Garnet.”</span><a href="#fnref8" class="footnote-back"
+role="doc-backlink">↩︎</a></p></li>
+<li id="fn9"><p>E.g., Padovan et al., <span>“Impact-Induced Changes in
+Source Depth and Volume of Magmatism on <span>Mercury</span> and Their
+Observational Signatures.”</span><a href="#fnref9" class="footnote-back"
+role="doc-backlink">↩︎</a></p></li>
+<li id="fn10"><p>Blewett et al., <span>“Hollows on
+<span>Mercury</span>.”</span><a href="#fnref10" class="footnote-back"
+role="doc-backlink">↩︎</a></p></li>
+<li id="fn11"><p>Vilas et al., <span>“Mineralogical Indicators of
+<span>Mercury</span>’s Hollows Composition in <span>MESSENGER</span>
+Color Observations.”</span><a href="#fnref11" class="footnote-back"
+role="doc-backlink">↩︎</a></p></li>
+<li id="fn12"><p>Ibid.<a href="#fnref12" class="footnote-back"
+role="doc-backlink">↩︎</a></p></li>
+<li id="fn13"><p>However, see Besse, Doressoundiram, and Benkhoff,
+<span>“Spectroscopic Properties of Explosive Volcanism Within the
+<span>Caloris</span> Basin with <span>MESSENGER</span>
+Observations”</span> for a successful VIS/NIR cross correction.<a
+href="#fnref13" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn14"><p>See. Domingue et al., <span>“Analysis of the
+<span>MESSENGER MASCS</span> Photometric Targets Part
+<span>I</span>”</span>; Domingue et al., <span>“Analysis of the
+<span>MESSENGER MASCS</span> Photometric Targets Part
+<span>II</span>.”</span><a href="#fnref14" class="footnote-back"
+role="doc-backlink">↩︎</a></p></li>
+<li id="fn15"><p>NASA, <span>“<span>PDS</span>.”</span><a
+href="#fnref15" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn16"><p>We found a GDAL bug when reading 8 bytes real values
+that is solved for version <span
+class="math inline">≥</span><!-- -->2.3.0 after our report to the
+developer. See <a
+href="https://trac.osgeo.org/gdal/wiki/Release/2.3.0-News"
+class="uri">https://trac.osgeo.org/gdal/wiki/Release/2.3.0-News</a> and
+use this version or higher when manipulating MASCS data.<a
+href="#fnref16" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn17"><p>PostgreSQL is a relational database management that
+controls the creation, integrity, maintenance and use of a database<a
+href="#fnref17" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn18"><p>PostGIS adds support for geographic objects in
+geographic information system and extends the database language with
+functions to create and manipulate geographic objects. PostGIS follows
+the Simple Features for SQL specification from the Open Geospatial
+Consortium (OGC).<a href="#fnref18" class="footnote-back"
+role="doc-backlink">↩︎</a></p></li>
+<li id="fn19"><p>MASCS VIS data have different wavelength sampling and
+part of the global Mercury campaign had different spectral binning.<a
+href="#fnref19" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn20"><p>Domingue et al., <span>“Analysis of the <span>MESSENGER
+MASCS</span> Photometric Targets Part <span>I</span>”</span>; Domingue
+et al., <span>“Analysis of the <span>MESSENGER MASCS</span> Photometric
+Targets Part <span>II</span>.”</span><a href="#fnref20"
+class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn21"><p>Hastie, Tibshirani, and Friedman, <em>The
+<span>Elements</span> of <span>Statistical Learning</span></em>;
+Hyvärinen and Oja, <span>“Independent Component Analysis.”</span><a
+href="#fnref21" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn22"><p>Tenenbaum, Silva, and Langford, <span>“A <span>Global
+Geometric Framework</span> for <span>Nonlinear Dimensionality
+Reduction</span>”</span>; Roweis and Saul, <span>“Nonlinear
+<span>Dimensionality Reduction</span> by <span>Locally Linear
+Embedding</span>”</span>; Donoho and Grimes, <span>“Hessian
+Eigenmaps”</span>; Maaten and Hinton, <span>“Visualizing
+<span>Data</span> Using t-<span>SNE</span>”</span>; McInnes, Healy, and
+Melville, <span>“<span>UMAP</span>.”</span><a href="#fnref22"
+class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn23"><p>Lee and Verleysen, <em>Nonlinear <span>Dimensionality
+Reduction</span></em>.<a href="#fnref23" class="footnote-back"
+role="doc-backlink">↩︎</a></p></li>
+<li id="fn24"><p>Roweis and Saul, <span>“Nonlinear <span>Dimensionality
+Reduction</span> by <span>Locally Linear Embedding</span>.”</span><a
+href="#fnref24" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn25"><p>McInnes, Healy, and Melville,
+<span>“<span>UMAP</span>.”</span><a href="#fnref25"
+class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn26"><p>Ibid.<a href="#fnref26" class="footnote-back"
+role="doc-backlink">↩︎</a></p></li>
+<li
+id="fn27"><p>https://umap-learn.readthedocs.io/en/latest/how_umap_works.html<a
+href="#fnref27" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn28"><p>McInnes, Healy, and Melville,
+<span>“<span>UMAP</span>.”</span><a href="#fnref28"
+class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn29"><p>McInnes, <span>“<span>UMAP</span>.”</span><a
+href="#fnref29" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn30"><p>The interactive tutorial "Understanding UMAP" give some
+insight in how the hyperparameters influence UMAP. See <span
+class="citation" data-cites="coenenUnderstandingUMAP2019a"> (Coenen and
+Pearce, <span>“Understanding <span>UMAP</span>”</span>)</span> and
+https://pair-code.github.io/understanding-346umap<a href="#fnref30"
+class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn31"><p>see for example "Selecting the number of clusters with
+silhouette analysis on KMeans clustering" <a
+href="https://scikit-learn.org/stable/auto_examples/cluster/plot_kmeans_silhouette_analysis.html"
+class="uri">https://scikit-learn.org/stable/auto_examples/cluster/plot_kmeans_silhouette_analysis.html</a><a
+href="#fnref31" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn32"><p>Rui Xu and Wunsch, <span>“Survey of Clustering
+Algorithms.”</span><a href="#fnref32" class="footnote-back"
+role="doc-backlink">↩︎</a></p></li>
+<li id="fn33"><p>Vasavada, <span>“Near-<span>Surface Temperatures</span>
+on <span>Mercury</span> and the <span>Moon</span> and the
+<span>Stability</span> of <span>Polar Ice Deposits</span>.”</span><a
+href="#fnref33" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn34"><p>Denevi et al., <span>“The Distribution and Origin of
+Smooth Plains on <span>Mercury</span>.”</span><a href="#fnref34"
+class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn35"><p>Ibid.<a href="#fnref35" class="footnote-back"
+role="doc-backlink">↩︎</a></p></li>
+<li id="fn36"><p>Bandfield, Hamilton, and Christensen, <span>“A
+<span>Global View</span> of <span>Martian Surface Compositions</span>
+from <span>MGS</span>-<span>TES</span>.”</span><a href="#fnref36"
+class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn37"><p>Maturilli et al., <span>“Komatiites as
+<span>Mercury</span> Surface Analogues.”</span><a href="#fnref37"
+class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn38"><p>Nittler et al., <span>“Global Major-Element Maps of
+Mercury from Four Years of <span>MESSENGER X</span>-<span>Ray
+Spectrometer</span> Observations.”</span><a href="#fnref38"
+class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn39"><p>Peplowski et al., <span>“Remote Sensing Evidence for an
+Ancient Carbon-Bearing Crust on <span>Mercury</span>.”</span><a
+href="#fnref39" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn40"><p>Nittler et al., <span>“The
+<span>Major</span>-<span>Element Composition</span> of
+<span>Mercury</span>’s <span>Surface</span> from <span>MESSENGER
+X</span>-Ray <span>Spectrometry</span>”</span>; Nittler et al.,
+<span>“Global Major-Element Maps of Mercury from Four Years of
+<span>MESSENGER X</span>-<span>Ray Spectrometer</span>
+Observations.”</span><a href="#fnref40" class="footnote-back"
+role="doc-backlink">↩︎</a></p></li>
+
+<li id="fn41"><p>https://github.com/epn-ml/MESSENGER-Mercury-Surface-Cassification-Unsupervised_DLR<a
+href="#fnref41" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>
