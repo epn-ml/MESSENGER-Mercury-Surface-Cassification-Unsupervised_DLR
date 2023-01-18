@@ -6,7 +6,7 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.14.4
+#       jupytext_version: 1.14.2
 #   kernelspec:
 #     display_name: Python 3 (ipykernel)
 #     language: python
@@ -20,14 +20,15 @@
 #
 
 # %% [markdown]
-# ## Abstract
+# **Abstract**
 #
 # In this work we apply unsupervised learning techniques for  dimensionality reduction and clustering to remote sensing  hyperspectral Visible-Near Infrared (VNIR) reflectance spectra  datasets of the planet Mercury obtained by the MErcury Surface, Space  ENvironment, GEochemistry, and Ranging (MESSENGER) mission.
 # This  approach produces cluster maps, which group different regions of the  surface based on the properties of their spectra as inferred during  the learning process.
 # While results depend on the choice of model  parameters and available data, comparison to expert-generated geologic  maps shows that some clusters correspond to expert-mapped classes such  as smooth plains on Mercury.
 # These automatically generated maps can  serve as a starting point or comparison for traditional methods of  creating geologic maps based on spectral patterns.
-# The code and data  used in this work is available as python jupyter notebook on the  github public repository  [MESSENGER-Mercury-Surface-Cassification-Unsupervised_DLR](https://github.
-# com/epn-ml/MESSENGER-Mercury-Surface-Cassification-Unsupervised_DLR)[^1] funded by the European Union's Horizon 2020 grant No 871149.
+#
+#
+# The code and data  used in this work is available as python jupyter notebook on the  github public repository  [MESSENGER-Mercury-Surface-Cassification-Unsupervised_DLR](https://github.com/epn-ml/MESSENGER-Mercury-Surface-Cassification-Unsupervised_DLR) funded by the European Union's Horizon 2020 grant No 871149.
 #
 # Authors:
 # - Mario D'Amore$^1$
@@ -39,669 +40,6 @@
 # -  $^2$EUMETSAT, Eumetsat Allee 1, 64295 Darmstadt, Germany
 # -  $^3$WGS, Berliner Allee 47, 64295 Darmstadt, Germany
 #
-#
-
-# %% [markdown]
-# ## [Introduction](#sec:4b.intro)
-#
-# The sheer amount of data returned by scientific missions aimed at
-# exploring the solar system and observing exoplanets in recent decades
-# overwhelms classical methods to explore and discover important
-# scientific aspects of the target body. As an example, the Mercury data
-# return for Mariner 10 was less than 100 MB, while MESSENGER delivered
-# about 23 TB. Future missions are expected to exceed this limit. In
-# addition, there is a trend of increasing complexity in the data itself,
-# e.g., going from the of Mariner-10 to the hyperspectral datasets
-# expected from BepiColombo. This situation clearly indicates that some
-# form of automated analysis would be beneficial, provided it is able to
-# save time without a loss of the information content of the data.
-#
-# Keeping the focus on hyperspectral remote sensing data, the typical
-# approach for analysing this kind of data is to model the observed
-# radiation with a forward radiative model[like Hapke, as in
-# @Hamilton2005] or attempt to reproduce the observed radiation by setting
-# up relevant samples in a laboratory setting using chemical and/or
-# geomorphological context information.[e.g., @Helbert2013] Complex
-# forward models that are able to take into account the relevant physics
-# are typically computationally intensive and difficult to use to
-# investigate the very large parameter space covered by hyperspectral
-# data. This consideration is even more relevant for laboratory
-# investigations : physical simulation needs the target to be physically
-# fabricated, hence more and and more parameters means more experiments
-# and more time. Models need computational power to be calculated in a
-# reasonable amount of time, but could be distributed on several machines
-# to overcome this limitation. This workaround is not effective for
-# laboratory experiment, because most only few places meets of the
-# environment needed for space sample simulation, like high-vacuum,
-# -temperature, -radiation and so on.
-#
-# Without a way to efficiently and rapidly explore large amounts of
-# complex data, it is likely that valuable information will be missed in
-# large hyperspectral data sets.
-#
-# Geological maps are the gold standard for remote planetary surface
-# studies, but producing them is an extremely time-consuming task. This
-# process can suffer from user bias and typically only uses a few data
-# points (e.g., 3-channel images) to describe different units. For
-# example,[@Denevi2009] mapped the distribution and extent of major
-# terrain types of Mercury using MESSENGER Mercury Dual Imaging System
-# (MDIS) camera observations of Mercury. While the camera has 11 spectral
-# bands, the maps typically used for the terrain differentiation are RGB,
-# where 3 representative spectral bands are mapped onto the three image
-# color channels.
-#
-# Geomorphological maps take in account additional features like surface
-# roughness and crater density as a proxy for the age, where the
-# correlation between age and crater density are derived from
-# models.[e.g., @blandCraterCounting2003; @kerrWhoCanRead2006] Automated
-# techniques are becoming more common in planetary science applications,
-# as this books testifies, and the aim of this chapter is to illustrate
-# how to apply unsupervised learning techniques to remote sensing data.
-# This approach requires minimal user interaction and yields
-# scientifically interesting products like classification maps that can be
-# directly compared with geomorphological maps and models. We present an
-# analysis of spectral reflectance data of Mercury's surface collected by
-# the Mercury Atmospheric and Surface Composition Spectrometer (MASCS)
-# instrument during orbital observations of the NASA MESSENGER mission
-# between 2011 and 2015.[@McClintock2007] MASCS is a three sensor point
-# spectrometer with a spectral coverage from 200 nm to 1450 nm. After a
-# brief overview of the instrument and its significance for the
-# investigation of Mercury (section
-# [2](#sec:4b.mercury_mascs){reference-type="ref"
-# reference="sec:4b.mercury_mascs"}), we will illustrate how we extract
-# and resample the data to a format useful for our ML application (section
-# [3](#sec:4b.dataprep){reference-type="ref"
-# reference="sec:4b.dataprep"}). Then we show how to compress the data
-# (section
-# [4.1](#sec:4b.dimensionality_reduction_ica){reference-type="ref"
-# reference="sec:4b.dimensionality_reduction_ica"}), how to project them
-# to a lower number of dimensions (section
-# [4.2](#sec:4b.manifold_learning){reference-type="ref"
-# reference="sec:4b.manifold_learning"}), and finally, how to group
-# "similar" data points together to discover salient spectral classes and
-# their distribution on the surface. We conclude in section
-# [4.4](#sec:4b.conclusion){reference-type="ref"
-# reference="sec:4b.conclusion"} by providing a basic comparison of the
-# result of the discovered spectral class distribution with maps of the
-# surface of Mercury obtained using classical methods, in order to provide
-# a first assessment of the machine learning techniques presented here.
-
-# %% [markdown]
-# the case, i.e. [Bandfield2000](#ref-Bandfield2000) did found spectral classes on Mars and
-#
-
-# %% [markdown]
-# ## [Mercury and the MASCS instrument](#sec:4b.mercury_mascs)
-#
-# Surface mineralogy and composition are important indicators of the past
-# of a planetary body, since they provide hints about the processes that
-# formed and altered the crust, which is largely the result of the
-# interior evolution. For example, the possibility of identifying specific
-# mineral assemblage like metamorphic rocks, which are known to form in
-# specific pressure and temperature conditions, would provide indications
-# on the physical processes occurring in the subsurface that produced
-# those rocks and later transported the rocks to the surface.[e.g.,
-# @namurSilicateMineralogySurface2017] Similarly, observations of hydrated
-# minerals can be interpreted as indicating the possible past presence of
-# water, as in the case of Mars.[@meslinSoilDiversityHydration2013]
-#
-# While some investigations have been published on Mercury's surface
-# mineralogy,[e.g.,
-# @e.vanderkaadenGeochemistryMineralogyPetrology2017; @namurSilicateMineralogySurface2017; @Vilas2016a; @Sprague2009]
-# its link to the endogenous (e.g., mantle convection) and exogenous
-# (e.g., impacts) processes that operated during the history of the planet
-# is still difficult to elucidate.[e.g.,
-# @padovanImpactinducedChangesSource2017] A relevant example is the
-# geological features known as hollows, discovered on the surface of
-# Mercury in MESSENGER data. Hollows are rimless depressions with flat
-# floors, surrounded by halos of high-albedo material, and typically found
-# in clusters.[@blewett2011hollows] Given this evidence, their formation
-# mechanism likely includes the loss of volatile material through one or
-# more processes such as sublimation, space weathering, outgassing, or
-# pyroclastic flow. Hollows are associated with a particular spectral
-# signature in MESSENGER's MDIS camera,[@Vilas2016a] but a specific
-# spectral signature in spectrometer data could not be identified due to
-# the coarse spatial resolution of the spectrometer. Overall, the only
-# clear inference based on VNIR spectra obtained by the MASCS instrument
-# is that Mercury's surface shows little variation, displaying no distinct
-# spectral features except for the possible indication of sulfide
-# mineralogy within the hollows.[@Vilas2016a]
-#
-# MASCS consists of a small Cassegrain telescope with an effective focal
-# length of 257 mm and a 50-mm aperture that simultaneously feeds an
-# UltraViolet and Visible Spectrometer (UVVS) and a Visible and InfraRed
-# Spectrograph (VIRS) channel. VIRS is a fixed concave grating
-# spectrograph with a focal length of 210 mm, equipped with a beam
-# splitter that simultaneously disperses the light onto a 512-element
-# sensor (VIS, 300--1050 nm) and a 256-element infrared sensor array (NIR,
-# 850--1450 nm). Data obtained by MASCS covers almost the entire surface
-# of Mercury. The spatial resolution is highly latitude dependent due to
-# the very elliptical orbit of the spacecraft, but a reference value
-# $\sim5$ km. This low spatial resolution is a trade-off for higher
-# spectral resolution and more spectral channels compared to the imaging
-# instruments (i.e., the MDIS).
-#
-# The NIR sensor is characterized by 3 -- 5 times lower signal-to-noise
-# ratios (SNRs) than the VIS detector and does not add significant
-# information to the VIS sensor in our tests. NIR measurement cann be
-# linked and corrected to match corresponding VIS measurements
-# following.[However, see @Besse2015 for a successful VIS/NIR cross
-# correction.] The biggest obstacle is that the the most accurate
-# photometric corrections is only available for the VIS channel.[see.
-# @domingueAnalysisMESSENGERMASCS2019; @domingueAnalysisMESSENGERMASCS2019a]
-# We then analysed only data from VIS channel, that is enough for the sake
-# of illustrating unsupervised learning techniques.
-
-# %% [markdown]
-# ## Bibliography(#sec:bibliography)
-#
-# <a target="_self" href="#ref-Bandfield2000">¶</a>
-# Bandfield, JL, VE Hamilton, and PR Christensen. "A Global View of
-# Martian Surface Compositions from MGS-TES." *Science* 287, no. March
-# (2000): 1626--1630. doi:[fjh6x2](https://doi.org/fjh6x2).
-# :::
-
-# %% [markdown]
-# ::: {#ref-Besse2015 .csl-entry role="doc-biblioentry"}
-# Besse, S., A. Doressoundiram, and J. Benkhoff. "Spectroscopic Properties
-# of Explosive Volcanism Within the Caloris Basin with MESSENGER
-# Observations." *Journal of Geophysical Research: Planets* 120, no. 12
-# (December 2015): 2102--2117.
-# doi:[10.1002/2015JE004819](https://doi.org/10.1002/2015JE004819).
-# :::
-#
-# ::: {#ref-blandCraterCounting2003 .csl-entry role="doc-biblioentry"}
-# Bland, Phil. "Crater Counting." *Astronomy & Geophysics* 44, no. 4
-# (August 2003): 4.21--4.21. doi:[dsw66x](https://doi.org/dsw66x).
-# :::
-#
-# ::: {#ref-blewett2011hollows .csl-entry role="doc-biblioentry"}
-# Blewett, D. T., N. L. Chabot, B. W. Denevi, C. M. Ernst, J. W. Head, N.
-# R. Izenberg, S. L. Murchie, et al. "Hollows on Mercury: MESSENGER
-# Evidence for Geologically Recent Volatile-Related Activity." *Science*
-# 333, no. 6051 (September 2011): 1856--1859.
-# doi:[d8hhvw](https://doi.org/d8hhvw).
-# :::
-#
-# ::: {#ref-coenenUnderstandingUMAP2019a .csl-entry role="doc-biblioentry"}
-# Coenen, Andy, and Adam Pearce. "Understanding UMAP."
-# https://pair-code.github.io/understanding-umap/, 2019.
-# :::
-#
-# ::: {#ref-Denevi2013 .csl-entry role="doc-biblioentry"}
-# Denevi, Brett W., Carolyn M. Ernst, Heather M. Meyer, Mark S. Robinson,
-# Scott L. Murchie, Jennifer L. Whitten, James W. Head, et al. "The
-# Distribution and Origin of Smooth Plains on Mercury." *Journal of
-# Geophysical Research: Planets* 118, no. 5 (May 2013): 891--907.
-# doi:[10.1002/jgre.20075](https://doi.org/10.1002/jgre.20075).
-# :::
-#
-# ::: {#ref-Denevi2009 .csl-entry role="doc-biblioentry"}
-# Denevi, Brett W., Mark S. Robinson, David T. Blewett, Deborah L.
-# Domingue, James W. Head III, Timothy J. McCoy, Ralph L. McNutt Jr.,
-# Scott L. Murchie, and Sean C. Solomon. "MESSENGER Global Color
-# Observations: Implications for the Composition and Evolution of
-# Mercury's Crust." In *Lunar and Planetary Science Conference*, 1--2,
-# 2009.
-# :::
-#
-# ::: {#ref-domingueAnalysisMESSENGERMASCS2019 .csl-entry role="doc-biblioentry"}
-# Domingue, Deborah L., Mario D'Amore, Sabrina Ferrari, Jörn Helbert, and
-# Noam R. Izenberg. "Analysis of the MESSENGER MASCS Photometric Targets
-# Part I: Photometric Standardization for Examining Spectral Variability
-# Across Mercury's Surface." *Icarus* 319 (February 2019): 247--263.
-# doi:[gh3dp5](https://doi.org/gh3dp5).
-# :::
-#
-# ::: {#ref-domingueAnalysisMESSENGERMASCS2019a .csl-entry role="doc-biblioentry"}
-# ---------. "Analysis of the MESSENGER MASCS Photometric Targets Part II:
-# Photometric Variability Between Geomorphological Units." *Icarus* 319
-# (February 2019): 140--246. doi:[gh3dp6](https://doi.org/gh3dp6).
-# :::
-#
-# ::: {#ref-donohoHessianEigenmapsLocally2003 .csl-entry role="doc-biblioentry"}
-# Donoho, David L., and Carrie Grimes. "Hessian Eigenmaps: Locally Linear
-# Embedding Techniques for High-Dimensional Data." *Proceedings of the
-# National Academy of Sciences* 100, no. 10 (May 2003): 5591--5596.
-# doi:[cnjc4z](https://doi.org/cnjc4z).
-# :::
-#
-# ::: {#ref-e.vanderkaadenGeochemistryMineralogyPetrology2017 .csl-entry role="doc-biblioentry"}
-# E. Vander Kaaden, Kathleen, Francis M. McCubbin, Larry R. Nittler,
-# Patrick N. Peplowski, Shoshana Z. Weider, Elizabeth A. Frank, and
-# Timothy J. McCoy. "Geochemistry, Mineralogy, and Petrology of Boninitic
-# and Komatiitic Rocks on the Mercurian Surface: Insights into the
-# Mercurian Mantle." *Icarus* 285 (March 2017): 155--168.
-# doi:[gg3j22](https://doi.org/gg3j22).
-# :::
-#
-# ::: {#ref-Hamilton2005 .csl-entry role="doc-biblioentry"}
-# Hamilton, Victoria E., Harry Y. McSween, and Bruce Hapke. "Mineralogy of
-# Martian Atmospheric Dust Inferred from Thermal Infrared Spectra of
-# Aerosols." *Journal of Geophysical Research* 110, no. E12 (2005): 1--11.
-# doi:[bhsb7j](https://doi.org/bhsb7j).
-# :::
-#
-# ::: {#ref-hastieElementsStatisticalLearning2009 .csl-entry role="doc-biblioentry"}
-# Hastie, Trevor, Robert Tibshirani, and Jerome Friedman. *The Elements of
-# Statistical Learning: Data Mining, Inference, and Prediction, Second
-# Edition*. Second. Springer Series in Statistics. New York:
-# Springer-Verlag, 2009.
-# doi:[10.1007/978-0-387-84858-7](https://doi.org/10.1007/978-0-387-84858-7).
-# :::
-#
-# ::: {#ref-Helbert2013 .csl-entry role="doc-biblioentry"}
-# Helbert, Jörn, Alessandro Maturilli, Mario D'Amore, and M. D'Amore.
-# "Visible and Near-Infrared Reflectance Spectra of Thermally Processed
-# Synthetic Sulfides as a Potential Analog for the Hollow Forming
-# Materials on Mercury." *Earth and Planetary Science Letters* 369--370
-# (May 2013): 233--238. doi:[gbddt9](https://doi.org/gbddt9).
-# :::
-#
-# ::: {#ref-hyvarinenIndependentComponentAnalysis2000 .csl-entry role="doc-biblioentry"}
-# Hyvärinen, A., and E. Oja. "Independent Component Analysis: Algorithms
-# and Applications." *Neural Networks* 13, no. 4 (June 2000): 411--430.
-# doi:[cx35gq](https://doi.org/cx35gq).
-# :::
-#
-# ::: {#ref-kerrWhoCanRead2006 .csl-entry role="doc-biblioentry"}
-# Kerr, Richard A. "Who Can Read the Martian Clock?" *Science* 312, no.
-# 5777 (May 2006): 1132--1133. doi:[b6v8tt](https://doi.org/b6v8tt).
-# :::
-#
-# ::: {#ref-leeNonlinearDimensionalityReduction2007 .csl-entry role="doc-biblioentry"}
-# Lee, John A., and Michel Verleysen. *Nonlinear Dimensionality
-# Reduction*. Information Science and Statistics. New York:
-# Springer-Verlag, 2007.
-# doi:[10.1007/978-0-387-39351-3](https://doi.org/10.1007/978-0-387-39351-3).
-# :::
-#
-# ::: {#ref-maatenVisualizingDataUsing2008 .csl-entry role="doc-biblioentry"}
-# Maaten, Laurens van der, and Geoffrey Hinton. "Visualizing Data Using
-# t-SNE." *Journal of Machine Learning Research* 9, no. 86 (2008):
-# 2579--2605.
-# :::
-#
-# ::: {#ref-Maturilli2014a .csl-entry role="doc-biblioentry"}
-# Maturilli, A., J. Helbert, J. M. St. John, J. W. Head, W. M. Vaughan, M.
-# D'Amore, M. Gottschalk, and S. Ferrari. "Komatiites as Mercury Surface
-# Analogues: Spectral Measurements at PEL." *Earth and Planetary Science
-# Letters* 398 (2014). doi:[gg3jwp](https://doi.org/gg3jwp).
-# :::
-#
-# ::: {#ref-McClintock2007 .csl-entry role="doc-biblioentry"}
-# McClintock, William E., and Mark R. Lankton. "The Mercury Atmospheric
-# and Surface Composition Spectrometer for the MESSENGER Mission." *Space
-# Science Reviews* 131, no. 1--4 (2007): 481--521.
-# doi:[btc6f6](https://doi.org/btc6f6).
-# :::
-#
-# ::: {#ref-mcinnesUMAPUniformManifold2018 .csl-entry role="doc-biblioentry"}
-# McInnes, Leland. "UMAP: Uniform Manifold Approximation and Projection
-# for Dimension Reduction Umap 0.5 Documentation."
-# https://umap-learn.readthedocs.io/en/latest/index.html, 2018.
-# :::
-#
-# ::: {#ref-mcinnesUMAPUniformManifold2020 .csl-entry role="doc-biblioentry"}
-# McInnes, Leland, John Healy, and James Melville. "UMAP: Uniform Manifold
-# Approximation and Projection for Dimension Reduction." *arXiv:1802.03426
-# \[Cs, Stat\]* (September 2020). <https://arxiv.org/abs/1802.03426>.
-# :::
-#
-# ::: {#ref-meslinSoilDiversityHydration2013 .csl-entry role="doc-biblioentry"}
-# Meslin, P.-Y., O. Gasnault, O. Forni, S. Schröder, A. Cousin, G. Berger,
-# S. M. Clegg, et al. "Soil Diversity and Hydration as Observed by ChemCam
-# at Gale Crater, Mars." *Science* 341, no. 6153 (September 2013).
-# doi:[f3sdqx](https://doi.org/f3sdqx).
-# :::
-#
-# ::: {#ref-namurSilicateMineralogySurface2017 .csl-entry role="doc-biblioentry"}
-# Namur, Olivier, and Bernard Charlier. "Silicate Mineralogy at the
-# Surface of Mercury." *Nature Geoscience* 10, no. 1 (January 2017):
-# 9--13. doi:[f9r3qp](https://doi.org/f9r3qp).
-# :::
-#
-# ::: {#ref-nasaPDSPDS3Standards2009 .csl-entry role="doc-biblioentry"}
-# NASA. "PDS: PDS3 Standards Reference."
-# https://pds.nasa.gov/datastandards/pds3/standards/, 2009.
-# :::
-#
-# ::: {#ref-Nittler2011 .csl-entry role="doc-biblioentry"}
-# Nittler, L. R., R. D. Starr, S. Z. Weider, T. J. McCoy, W. V. Boynton,
-# D. S. Ebel, C. M. Ernst, et al. "The Major-Element Composition of
-# Mercury's Surface from MESSENGER X-Ray Spectrometry." *Science* 333, no.
-# 6051 (September 2011): 1847--1850. doi:[bps3b8](https://doi.org/bps3b8).
-# :::
-#
-# ::: {#ref-nittlerGlobalMajorelementMaps2020 .csl-entry role="doc-biblioentry"}
-# Nittler, Larry R., Elizabeth A. Frank, Shoshana Z. Weider, Ellen
-# Crapster-Pregont, Audrey Vorburger, Richard D. Starr, and Sean C.
-# Solomon. "Global Major-Element Maps of Mercury from Four Years of
-# MESSENGER X-Ray Spectrometer Observations." *Icarus* (February 2020):
-# 113716. doi:[ggm5sv](https://doi.org/ggm5sv).
-# :::
-#
-# ::: {#ref-padovanImpactinducedChangesSource2017 .csl-entry role="doc-biblioentry"}
-# Padovan, Sebastiano, Nicola Tosi, Ana-Catalina Plesa, and Thomas Ruedas.
-# "Impact-Induced Changes in Source Depth and Volume of Magmatism on
-# Mercury and Their Observational Signatures." *Nature Communications* 8,
-# no. 1 (December 2017): 1945. doi:[gcn9p2](https://doi.org/gcn9p2).
-# :::
-#
-# ::: {#ref-Peplowski2016 .csl-entry role="doc-biblioentry"}
-# Peplowski, Patrick N., Rachel L. Klima, David J. Lawrence, Carolyn M.
-# Ernst, Brett W. Denevi, Elizabeth A. Frank, John O. Goldsten, Scott L.
-# Murchie, Larry R. Nittler, and Sean C. Solomon. "Remote Sensing Evidence
-# for an Ancient Carbon-Bearing Crust on Mercury." *Nature Geoscience* 9,
-# no. 4 (March 2016): 273--276.
-# doi:[10.1038/ngeo2669](https://doi.org/10.1038/ngeo2669).
-# :::
-#
-# ::: {#ref-roweisNonlinearDimensionalityReduction2000 .csl-entry role="doc-biblioentry"}
-# Roweis, Sam T., and Lawrence K. Saul. "Nonlinear Dimensionality
-# Reduction by Locally Linear Embedding." *Science* 290, no. 5500
-# (December 2000): 2323--2326. doi:[cbws2r](https://doi.org/cbws2r).
-# :::
-#
-# ::: {#ref-ruixuSurveyClusteringAlgorithms2005 .csl-entry role="doc-biblioentry"}
-# Rui Xu, and D. Wunsch. "Survey of Clustering Algorithms." *IEEE
-# Transactions on Neural Networks* 16, no. 3 (May 2005): 645--678.
-# doi:[c3pfgf](https://doi.org/c3pfgf).
-# :::
-#
-# ::: {#ref-Sprague2009 .csl-entry role="doc-biblioentry"}
-# Sprague, A. L., K. L. Donaldson Hanna, R. W. H. Kozlowski, J Helbert, A
-# Maturilli, J. B. Warell, and J. L. Hora. "Spectral Emissivity
-# Measurements of Mercury's Surface Indicate Mg- and Ca-Rich Mineralogy,
-# K-Spar, Na-Rich Plagioclase, Rutile, with Possible Perovskite, and
-# Garnet." *Planetary and Space Science* 57, no. 3 (March 2009): 364--383.
-# doi:[fbd9jq](https://doi.org/fbd9jq).
-# :::
-#
-# ::: {#ref-tenenbaumGlobalGeometricFramework2000 .csl-entry role="doc-biblioentry"}
-# Tenenbaum, Joshua B., Vin de Silva, and John C. Langford. "A Global
-# Geometric Framework for Nonlinear Dimensionality Reduction." *Science*
-# 290, no. 5500 (December 2000): 2319--2323.
-# doi:[cz8wgk](https://doi.org/cz8wgk).
-# :::
-#
-# ::: {#ref-Vasavada1999 .csl-entry role="doc-biblioentry"}
-# Vasavada, a. "Near-Surface Temperatures on Mercury and the Moon and the
-# Stability of Polar Ice Deposits." *Icarus* 141, no. 2 (October 1999):
-# 179--193. doi:[b9fhjd](https://doi.org/b9fhjd).
-# :::
-#
-# ::: {#ref-Vilas2016a .csl-entry role="doc-biblioentry"}
-# Vilas, Faith, Deborah L. Domingue, Jörn Helbert, Mario D'Amore,
-# Alessandro Maturilli, Rachel L. Klima, Karen R. Stockstill-Cahill, et
-# al. "Mineralogical Indicators of Mercury's Hollows Composition in
-# MESSENGER Color Observations." *Geophysical Research Letters* 43, no. 4
-# (February 2016): 1450--1456. doi:[gg3j2v](https://doi.org/gg3j2v).
-# :::
-# :::
-#
-# ::: {#footnotes .section .footnotes .footnotes-end-of-document role="doc-endnotes"}
-#
-# ------------------------------------------------------------------------
-#
-# 1.  ::: {#fn1}
-#     Like Hapke, as in Hamilton, McSween, and Hapke, "Mineralogy of
-#     Martian Atmospheric Dust Inferred from Thermal Infrared Spectra of
-#     Aerosols."[↩︎](#fnref1){.footnote-back role="doc-backlink"}
-#     :::
-#
-# 2.  ::: {#fn2}
-#     E.g., Helbert et al., "Visible and Near-Infrared Reflectance Spectra
-#     of Thermally Processed Synthetic Sulfides as a Potential Analog for
-#     the Hollow Forming Materials on Mercury."[↩︎](#fnref2){.footnote-back
-#     role="doc-backlink"}
-#     :::
-#
-# 3.  ::: {#fn3}
-#     Denevi et al., "MESSENGER Global Color
-#     Observations."[↩︎](#fnref3){.footnote-back role="doc-backlink"}
-#     :::
-#
-# 4.  ::: {#fn4}
-#     E.g., Bland, "Crater Counting"; Kerr, "Who Can Read the Martian
-#     Clock?"[↩︎](#fnref4){.footnote-back role="doc-backlink"}
-#     :::
-#
-# 5.  ::: {#fn5}
-#     McClintock and Lankton, "The Mercury Atmospheric and Surface
-#     Composition Spectrometer for the MESSENGER
-#     Mission."[↩︎](#fnref5){.footnote-back role="doc-backlink"}
-#     :::
-#
-# 6.  ::: {#fn6}
-#     E.g., Namur and Charlier, "Silicate Mineralogy at the Surface of
-#     Mercury."[↩︎](#fnref6){.footnote-back role="doc-backlink"}
-#     :::
-#
-# 7.  ::: {#fn7}
-#     Meslin et al., "Soil Diversity and Hydration as Observed by ChemCam
-#     at Gale Crater, Mars."[↩︎](#fnref7){.footnote-back
-#     role="doc-backlink"}
-#     :::
-#
-# 8.  ::: {#fn8}
-#     E.g., E. Vander Kaaden et al., "Geochemistry, Mineralogy, and
-#     Petrology of Boninitic and Komatiitic Rocks on the Mercurian
-#     Surface"; Namur and Charlier, "Silicate Mineralogy at the Surface of
-#     Mercury"; Vilas et al., "Mineralogical Indicators of Mercury's
-#     Hollows Composition in MESSENGER Color Observations"; Sprague et
-#     al., "Spectral Emissivity Measurements of Mercury's Surface Indicate
-#     Mg- and Ca-Rich Mineralogy, K-Spar, Na-Rich Plagioclase, Rutile,
-#     with Possible Perovskite, and Garnet."[↩︎](#fnref8){.footnote-back
-#     role="doc-backlink"}
-#     :::
-#
-# 9.  ::: {#fn9}
-#     E.g., Padovan et al., "Impact-Induced Changes in Source Depth and
-#     Volume of Magmatism on Mercury and Their Observational
-#     Signatures."[↩︎](#fnref9){.footnote-back role="doc-backlink"}
-#     :::
-#
-# 10. ::: {#fn10}
-#     Blewett et al., "Hollows on Mercury."[↩︎](#fnref10){.footnote-back
-#     role="doc-backlink"}
-#     :::
-#
-# 11. ::: {#fn11}
-#     Vilas et al., "Mineralogical Indicators of Mercury's Hollows
-#     Composition in MESSENGER Color
-#     Observations."[↩︎](#fnref11){.footnote-back role="doc-backlink"}
-#     :::
-#
-# 12. ::: {#fn12}
-#     Ibid.[↩︎](#fnref12){.footnote-back role="doc-backlink"}
-#     :::
-#
-# 13. ::: {#fn13}
-#     However, see Besse, Doressoundiram, and Benkhoff, "Spectroscopic
-#     Properties of Explosive Volcanism Within the Caloris Basin with
-#     MESSENGER Observations" for a successful VIS/NIR cross
-#     correction.[↩︎](#fnref13){.footnote-back role="doc-backlink"}
-#     :::
-#
-# 14. ::: {#fn14}
-#     See. Domingue et al., "Analysis of the MESSENGER MASCS Photometric
-#     Targets Part I"; Domingue et al., "Analysis of the MESSENGER MASCS
-#     Photometric Targets Part II."[↩︎](#fnref14){.footnote-back
-#     role="doc-backlink"}
-#     :::
-#
-# 15. ::: {#fn15}
-#     NASA, "PDS."[↩︎](#fnref15){.footnote-back role="doc-backlink"}
-#     :::
-#
-# 16. ::: {#fn16}
-#     We found a GDAL bug when reading 8 bytes real values that is solved
-#     for version [≥]{.math .inline}2.3.0 after our report to the
-#     developer. See <https://trac.osgeo.org/gdal/wiki/Release/2.3.0-News>
-#     and use this version or higher when manipulating MASCS
-#     data.[↩︎](#fnref16){.footnote-back role="doc-backlink"}
-#     :::
-#
-# 17. ::: {#fn17}
-#     PostgreSQL is a relational database management that controls the
-#     creation, integrity, maintenance and use of a
-#     database[↩︎](#fnref17){.footnote-back role="doc-backlink"}
-#     :::
-#
-# 18. ::: {#fn18}
-#     PostGIS adds support for geographic objects in geographic
-#     information system and extends the database language with functions
-#     to create and manipulate geographic objects. PostGIS follows the
-#     Simple Features for SQL specification from the Open Geospatial
-#     Consortium (OGC).[↩︎](#fnref18){.footnote-back role="doc-backlink"}
-#     :::
-#
-# 19. ::: {#fn19}
-#     MASCS VIS data have different wavelength sampling and part of the
-#     global Mercury campaign had different spectral
-#     binning.[↩︎](#fnref19){.footnote-back role="doc-backlink"}
-#     :::
-#
-# 20. ::: {#fn20}
-#     Domingue et al., "Analysis of the MESSENGER MASCS Photometric
-#     Targets Part I"; Domingue et al., "Analysis of the MESSENGER MASCS
-#     Photometric Targets Part II."[↩︎](#fnref20){.footnote-back
-#     role="doc-backlink"}
-#     :::
-#
-# 21. ::: {#fn21}
-#     Hastie, Tibshirani, and Friedman, *The Elements of Statistical
-#     Learning*; Hyvärinen and Oja, "Independent Component
-#     Analysis."[↩︎](#fnref21){.footnote-back role="doc-backlink"}
-#     :::
-#
-# 22. ::: {#fn22}
-#     Tenenbaum, Silva, and Langford, "A Global Geometric Framework for
-#     Nonlinear Dimensionality Reduction"; Roweis and Saul, "Nonlinear
-#     Dimensionality Reduction by Locally Linear Embedding"; Donoho and
-#     Grimes, "Hessian Eigenmaps"; Maaten and Hinton, "Visualizing Data
-#     Using t-SNE"; McInnes, Healy, and Melville,
-#     "UMAP."[↩︎](#fnref22){.footnote-back role="doc-backlink"}
-#     :::
-#
-# 23. ::: {#fn23}
-#     Lee and Verleysen, *Nonlinear Dimensionality
-#     Reduction*.[↩︎](#fnref23){.footnote-back role="doc-backlink"}
-#     :::
-#
-# 24. ::: {#fn24}
-#     Roweis and Saul, "Nonlinear Dimensionality Reduction by Locally
-#     Linear Embedding."[↩︎](#fnref24){.footnote-back role="doc-backlink"}
-#     :::
-#
-# 25. ::: {#fn25}
-#     McInnes, Healy, and Melville, "UMAP."[↩︎](#fnref25){.footnote-back
-#     role="doc-backlink"}
-#     :::
-#
-# 26. ::: {#fn26}
-#     Ibid.[↩︎](#fnref26){.footnote-back role="doc-backlink"}
-#     :::
-#
-# 27. ::: {#fn27}
-#     https://umap-learn.readthedocs.io/en/latest/how_umap_works.html[↩︎](#fnref27){.footnote-back
-#     role="doc-backlink"}
-#     :::
-#
-# 28. ::: {#fn28}
-#     McInnes, Healy, and Melville, "UMAP."[↩︎](#fnref28){.footnote-back
-#     role="doc-backlink"}
-#     :::
-#
-# 29. ::: {#fn29}
-#     McInnes, "UMAP."[↩︎](#fnref29){.footnote-back role="doc-backlink"}
-#     :::
-#
-# 30. ::: {#fn30}
-#     The interactive tutorial \"Understanding UMAP\" give some insight in
-#     how the hyperparameters influence UMAP. See [ (Coenen and Pearce,
-#     "Understanding UMAP")]{.citation
-#     cites="coenenUnderstandingUMAP2019a"} and
-#     https://pair-code.github.io/understanding-346umap[↩︎](#fnref30){.footnote-back
-#     role="doc-backlink"}
-#     :::
-#
-# 31. ::: {#fn31}
-#     see for example \"Selecting the number of clusters with silhouette
-#     analysis on KMeans clustering\"
-#     <https://scikit-learn.org/stable/auto_examples/cluster/plot_kmeans_silhouette_analysis.html>[↩︎](#fnref31){.footnote-back
-#     role="doc-backlink"}
-#     :::
-#
-# 32. ::: {#fn32}
-#     Rui Xu and Wunsch, "Survey of Clustering
-#     Algorithms."[↩︎](#fnref32){.footnote-back role="doc-backlink"}
-#     :::
-#
-# 33. ::: {#fn33}
-#     Vasavada, "Near-Surface Temperatures on Mercury and the Moon and the
-#     Stability of Polar Ice Deposits."[↩︎](#fnref33){.footnote-back
-#     role="doc-backlink"}
-#     :::
-#
-# 34. ::: {#fn34}
-#     Denevi et al., "The Distribution and Origin of Smooth Plains on
-#     Mercury."[↩︎](#fnref34){.footnote-back role="doc-backlink"}
-#     :::
-#
-# 35. ::: {#fn35}
-#     Ibid.[↩︎](#fnref35){.footnote-back role="doc-backlink"}
-#     :::
-#
-# 36. ::: {#fn36}
-#     Bandfield, Hamilton, and Christensen, "A Global View of Martian
-#     Surface Compositions from MGS-TES."[↩︎](#fnref36){.footnote-back
-#     role="doc-backlink"}
-#     :::
-#
-# 37. ::: {#fn37}
-#     Maturilli et al., "Komatiites as Mercury Surface
-#     Analogues."[↩︎](#fnref37){.footnote-back role="doc-backlink"}
-#     :::
-#
-# 38. ::: {#fn38}
-#     Nittler et al., "Global Major-Element Maps of Mercury from Four
-#     Years of MESSENGER X-Ray Spectrometer
-#     Observations."[↩︎](#fnref38){.footnote-back role="doc-backlink"}
-#     :::
-#
-# 39. ::: {#fn39}
-#     Peplowski et al., "Remote Sensing Evidence for an Ancient
-#     Carbon-Bearing Crust on Mercury."[↩︎](#fnref39){.footnote-back
-#     role="doc-backlink"}
-#     :::
-#
-# 40. ::: {#fn40}
-#     Nittler et al., "The Major-Element Composition of Mercury's Surface
-#     from MESSENGER X-Ray Spectrometry"; Nittler et al., "Global
-#     Major-Element Maps of Mercury from Four Years of MESSENGER X-Ray
-#     Spectrometer Observations."[↩︎](#fnref40){.footnote-back
-#     role="doc-backlink"}
-#     :::
-#
-# 41. ::: {#fn41}
-#     https://github.com/epn-ml/MESSENGER-Mercury-Surface-Cassification-Unsupervised_DLR[↩︎](#fnref41){.footnote-back
-#     role="doc-backlink"}
-#     :::
-# :::
-
-# %% [markdown]
-# <h2 class="unnumbered" id="sec:bibliography">Bibliography</h2>
-# <div id="refs" class="references csl-bib-body hanging-indent"
-# role="doc-bibliography">
-# <div id="ref-Bandfield2000" class="csl-entry" role="doc-biblioentry">
-# Bandfield, JL, VE Hamilton, and PR Christensen. <span>“A <span>Global
-# View</span> of <span>Martian Surface Compositions</span> from
-# <span>MGS</span>-<span>TES</span>.”</span> <em>Science</em> 287, no.
-# March (2000): 1626–1630. doi:<a
-# href="https://doi.org/fjh6x2">fjh6x2</a>.
-# </div>
 #
 
 # %% [markdown] tags=[]
@@ -744,6 +82,13 @@ import holoviews as hv
 import holoviews.operation.datashader as hds
 import hvplot.pandas
 # hv.extension('bokeh','matplotlib')
+
+# %% [markdown]
+# Ignore watnings, some holoviews calls should be updated.
+
+# %%
+import warnings
+warnings.filterwarnings('ignore')
 
 # %% [markdown]
 # Define auxiliary functions & data
@@ -821,7 +166,7 @@ def df_shader(in_data,**kwargs):
     kdims=[('x','longitude'),('y','latitude')]
     outdf_gdf.loc[spectral_df_nona_index,'R'] = in_data
 
-    return shader(hv.Points(outdf_gdf.loc[spectral_df_nona_index,['x','y','R']],kdims=kdims,vdims=vdims).opts(),**kwargs).opts()
+    return shader(hv.Points(outdf_gdf.loc[spectral_df_nona_index,['x','y','R']],kdims=kdims,vdims=vdims),**kwargs)
 
 
 def df_rasterer(in_data,**kwargs):
@@ -1228,7 +573,7 @@ background = hv.Image(
 # %% tags=[]
 map_crs = ccrs.PlateCarree(central_longitude=0.0)
 fig, ax = plt.subplots(nrows=1,ncols=1,figsize=[18,18],subplot_kw={'projection': map_crs})
-background = ax.imshow(img,
+background_mpl = ax.imshow(img,
                         cmap=plt.cm.gray,
                         extent=img_extent,
                         origin='upper',
@@ -1237,10 +582,9 @@ background = ax.imshow(img,
 
 # %% tags=[]
 hv.extension('matplotlib')
-hv.output(fig='png')
+# hv.output(fig='png')
 
 # %% tags=[]
-df_shader((spectral_df[970]-spectral_df[270])/700.)#.opts(fig_inches=4, aspect=2,fig_size=200)
 
 # %% tags=[]
 #     vdims = 'R'
@@ -1252,6 +596,8 @@ df_shader((spectral_df[970]-spectral_df[270])/700.)#.opts(fig_inches=4, aspect=2
 spectral_df[970]
 
 # %% tags=[]
+hv.extension('matplotlib')
+
 # spectral slope R[970]-R[270] / 270 -970
 (background.opts(cmap='Gray',alpha=0.5)*\
  df_shader((spectral_df[970]-spectral_df[270])/700.,cmap=plt.cm.Spectral_r).opts(interpolation='bilinear',alpha=0.5)).\
@@ -1265,7 +611,7 @@ plot_wav = 700
 
 out = colorbar_img_shader(spectral_df[plot_wav])
 _ = out.DynamicMap.II.opts(interpolation='None',aspect=1.8,fig_size=200,alpha=0.7)
-out
+out.collate()
 # hv.save(out,out_figure_path / '1b_mascs_700nm_refl.png')
 
 # %% tags=[]
@@ -1277,7 +623,7 @@ _ = out.DynamicMap.II.opts(height=400,width=800,alpha=0.75)
 out
 
 # %% [markdown] tags=[]
-# ## Learning
+# ## Machine Learning
 
 # %% tags=[]
 # small_data == spectral_df[spectral_df_nonan]
@@ -1304,11 +650,15 @@ from sklearn import pipeline, preprocessing
 # %% hidden=true tags=[]
 # Principal components analysis : which is the data dimensionality?
 
-# n_components = spectral_df.shape[1]//2
-# pca = decomposition.PCA(n_components=n_components)
-pca = decomposition.PCA(0.95)
+# explicitely set number of PCA components to comput
+n_components = 8
+pca = decomposition.PCA(n_components=n_components)
+
+# # let PCA decide the number of components to reconstruct 95% of the total variance 
+# pca = decomposition.PCA(0.99)
+
 pca.fit(X)
-n_components = pca.n_components_
+# n_components = pca.n_components_
 X_pca = pca.transform(X)
 
 print('X.shape               : {}\n'
@@ -1387,7 +737,7 @@ plt.imshow(exposure.equalize_hist(img,nbins=512),
 plt.show()
 
 # %% [markdown] hidden=true tags=[]
-# recontruct initial data with choosen PCA components  and look at the difference
+# reconstruct initial data with choosen PCA components  and look at the difference
 
 # %% hidden=true tags=[]
 diff_img = (X-np.dot(X_pca,pca.components_)-X.mean())
@@ -1420,7 +770,7 @@ diff_img.std().plot(ax=ax[3])
 hv.extension('matplotlib')
     
 NdLayout = hv.NdLayout(
-            {plot_wav: df_shader( (X-np.dot(X_pca,pca.components_)-X.mean())[plot_wav],x_sampling=2,y_sampling=2).\
+            {f'{plot_wav}nm': df_shader( (X-np.dot(X_pca,pca.components_)-X.mean())[plot_wav],x_sampling=2,y_sampling=2).\
             opts(interpolation='bicubic',aspect=2,alpha=0.8)
                  for ind,plot_wav in enumerate([270, 470, 770, 970])}
             ,kdims='Wav')
@@ -1516,7 +866,7 @@ NdLayout = hv.NdLayout(
                  for ind,cmp in enumerate(X_pca[:,:max_pca_comp].T)}
             ,kdims='Component')
 
-background.opts(cmap='Gray',alpha=0.9)*NdLayout.cols(2)
+background.options(cmap='Gray',alpha=0.9)*NdLayout.cols(2)
 
 # %% hidden=true
 hv.extension('matplotlib')
@@ -1555,10 +905,19 @@ opts(height=1000,width=1200,tight=True).cols(3)
 #
 # [2.5. Decomposing signals in components (matrix factorization problems) — scikit-learn 0.20.2 documentation](https://scikit-learn.org/stable/modules/decomposition.html#independent-component-analysis-ica)
 #
+# From the documentation :
+#
+# Independent component analysis separates a multivariate signal into additive subcomponents that are maximally independent. It is implemented in scikit-learn using the Fast ICA algorithm. Typically, ICA is not used for reducing dimensionality but for separating superimposed signals. Since the ICA model does not include a noise term, for the model to be correct, whitening must be applied. This can be done internally using the whiten argument or manually using one of the PCA variants.
+#
+# It is classically used to separate mixed signals (a problem known as blind source separation).
+#
 # Calculate the reconstruction error for increasing number of ICA components :
 #
 #     print(np.concatenate((np.arange(1,5),np.arange(0,160,20)[1:])))
 #     array([  1,   2,   3,   4,  20,  40,  60,  80, 100, 120, 140])
+
+# %% [markdown] heading_collapsed=true hidden=true
+# ##### ICA residual error estimation
 
 # %% tags=[]
 ica_rec_error_path = pathlib.Path(out_models_path / 'ica_rec_error_df.csv')
@@ -1605,40 +964,6 @@ opts(
 # hv.extension('bokeh')
 
 # (ica_rec_error_df/X.min().min()).hvplot()
-
-# %%
-import hvplot.pandas
-hv.extension('matplotlib')
-
-main_plot = hv.render((hv.HLine(0.0015,group='line')*\
- hv.VLine(4,group='line')*\
- ica_rec_error_df.sort_index().hvplot()*\
- ica_rec_error_df.sort_index().hvplot(kind='scatter')).\
-opts(
-    hv.opts.Points(marker='circle',alpha=0.5),
-    hv.opts.Curve(color='red', fig_size=250, aspect=2) 
-     ))
-
-inset = hv.render((hv.HLine(0.0015,group='line')*\
- hv.VLine(4,group='line')*\
- ica_rec_error_df.sort_index().hvplot()*\
- ica_rec_error_df.sort_index().hvplot(kind='scatter')).\
-opts(
-    hv.opts.Points(marker='circle',alpha=0.5),
-    hv.opts.Curve(color='red', fig_size=50, aspect=1) 
-     ).options(xlim=(2.5, 5),ylim=(0.00144, 0.00165)))
-
-
-main_ax = main_plot.get_axes()[0]
-inset = inset.get_axes()
-
-from mpl_toolkits.axes_grid1.inset_locator import inset_axes,mark_inset
-
-axin = inset_axes(main_ax, width='50%', height='50%', loc=1)
-# axin = main_ax.inset_axes([80, 0.001, 0.2, 0.5])
-
-# # main_ax.inset_axes?
-main_plot
 
 # %% tags=[]
 # %matplotlib inline
@@ -1706,7 +1031,7 @@ hv.extension('matplotlib')
     
 NdLayout = hv.NdLayout(
 #           difference maps
-            {plot_wav: df_shader( (X-ica.inverse_transform(S_))[plot_wav],x_sampling=1,y_sampling=1).\
+            {f'{plot_wav}nm': df_shader( (X-ica.inverse_transform(S_))[plot_wav],x_sampling=1,y_sampling=1).\
 #           only reoconstructed vectors maps
 #              {plot_wav: df_shader( ica.inverse_transform(S_)[:,plot_wav//2-X.columns[0]],x_sampling=2,y_sampling=2).\
 
@@ -1780,7 +1105,7 @@ NdLayout = hv.NdLayout(
                 for ind,cmp in enumerate(S_.T)}
             ,kdims='ICA Component')
 
-out = (background.opts(cmap='Gray',alpha=1)*NdLayout.cols(4)).opts(tight=True, vspace=0.01, hspace=0.01, fig_size=300).cols(2)
+out = (background.opts(cmap='Gray',alpha=1)*NdLayout.cols(4)).opts(tight=True, vspace=0.01, hspace=0.01, fig_size=200).cols(2)
 out
 # hv.save(out, out_figure_path / 'ICA_components_map.png')
 
@@ -1810,7 +1135,8 @@ def local_datashade ( X,
 point_grid = hv.operation.gridmatrix(df_ds, diagonal_operation=hv.operation.histogram.instance(num_bins=50) ).map(local_datashade, hv.Scatter)
 # .opts(hv.opts.RGB(interpolation='bilinear',aspect=1,fig_size=200))
 
-out = point_grid.opts(fig_size=300).opts(hv.opts.RGB(interpolation='bilinear',aspect=1))
+# %% tags=[]
+out = point_grid.opts(fig_size=200).opts(hv.opts.RGB(interpolation='bilinear',aspect=1))
 out
 # hv.save(out, out_figure_path / 'ICA_coefficients_gridplot_density_C1_C2.png', dpi=200)
 # hv.save(out, out_figure_path / 'ICA_coefficients_gridplot_density.png', dpi=200)
@@ -1819,22 +1145,50 @@ out
 # ### Manifold Learning
 #
 # [2.2. Manifold learning — scikit-learn 0.22.1 documentation](https://scikit-learn.org/stable/modules/manifold.html)
+#
+# Let's load cached embedding data.
+# Filenames are splitted to retrive some paramters.
+#
+# **WARNING :those methods are time/CPU consuming!**
 
 # %%
-[p.stem.split('_') for p in pathlib.Path('embedding/').glob('*.npy')]
+def split_name(path):
+    name=path.stem.split('_')
+    out_dict = {'path':path,'kind':name[1],'algorithm':name[0]}
+    for el in name[2:]:
+        out_dict[el.split('-')[0]]=el.split('-')[1]
+    return out_dict
 
-# %% [markdown] heading_collapsed=true
-# #### TSNE embedding
+cache_df = pd.DataFrame.from_dict(
+                [
+                split_name(p) for p in pathlib.Path('../models/').glob('*.npy')
+                ]
+            )
+
+cache_df=cache_df.sort_values(by=cache_df.columns[1:].tolist())
+
+cache_df
+
+# %% [markdown] heading_collapsed=true jp-MarkdownHeadingCollapsed=true tags=[]
+# #### T-distributed stochastic neighbor (T-SNE) embedding
+
+# %%
+# select T-SNE cache and sample 1 random 
+cache_df.query('algorithm == "tsne"').dropna(axis=1)
+
+# %%
+cache_df.query('algorithm == "tsne"').dropna(axis=1).columns
 
 # %% hidden=true
-# all data
-cached_tsne = pathlib.Path('tsne_embedding.npy')
+# set cache file pathlib.Path
+cached_tsne_dict = cache_df.query('algorithm == "tsne"').iloc[1].to_dict() 
 
-# # low correlation 
-# threshold=0.985
-# X = CovarianceThreshold(threshold=threshold).fit_transform(spectral.values[:,idx_in:idx_en])
-# cached_tsne = pathlib.Path('tsne_embedding_lowcorr-{}.npy'.format(threshold))
+cached_tsne   = cached_tsne_dict['path']
+pcacomponets  = cached_tsne_dict['path']
+pcacomponents = cached_tsne_dict['pcacomponents']
+perplexity    = cached_tsne_dict['perplexity']
 
+# load file 
 if cached_tsne.is_file():
     print(f'Loading: {cached_tsne}')
     X_tsne = np.load(cached_tsne)
@@ -1863,19 +1217,21 @@ label= None
 X = X_pca
 print(f'TSN X.shape : {X.shape}')
 
+# %% hidden=true
 filenameextra ='_pcacomponents-{}'.format(n_components)
 
 def get_tsne(perplexity=None,filename_extra=filenameextra, overwrite=False):
     from sklearn.manifold import TSNE
-    cached_tsne = pathlib.Path('embedding/tsne_embedding_perplexity-{}{}.npy'.format(perplexity,filename_extra))
+    cached_tsne = pathlib.Path('../models/tsne_embedding_perplexity-{}{}.npy'.format(perplexity,filename_extra))
     if cached_tsne.is_file():
         print(f'Loading: {cached_tsne}')
         x_tsne = np.load(cached_tsne)
     else:
         print(f'file not found: {cached_tsne} - Calculating!')
         if overwrite:
+            print(f'Not found, calculating {cached_tsne}')
             x_tsne = TSNE(n_components=2).fit_transform(X)
-            np.save(cached_tsne,x_tsne)    
+            np.save(cached_tsne,x_tsne)
         else:
             print(f'overwrite set to {overwrite} stopping')
     print('X.shape : {}, X_tsne.shape : {}, perplexity : {}'.format(X.shape, x_tsne.shape,perplexity))
@@ -1965,7 +1321,7 @@ print(list(itertools.product(neighbors,min_distances)))
 
 def get_umap(neighbors, mindistances,filename_extra=filenameextra, label=None, overwrite=False):
 
-    cached_umap = pathlib.Path('embedding/umap_embedding_neighbors-{}_mindist-{}{}.npy'.format(neighbors,mindistances,filename_extra))
+    cached_umap = pathlib.Path('../models/umap_embedding_neighbors-{}_mindist-{}{}.npy'.format(neighbors,mindistances,filename_extra))
     if cached_umap.is_file():
         print(f'Loading: {cached_umap}')
         x_umap = np.load(cached_umap)
@@ -2009,11 +1365,10 @@ hds.datashade(gridspace,
               x_sampling=0.25,
               y_sampling=0.25,
              ).\
-opts(aspect=1,fig_size=70).opts(hv.opts.RGB(interpolation='bilinear')))
-# opts(height=1600,width=1600))
+opts(aspect=1,fig_size=50).opts(hv.opts.RGB(interpolation='bilinear')))
 out
 
-# hv.save(out, out_figure_path / f'UMAP_gridspace_ICA_{ica_n_components}components.png', dpi=200)
+# save_plot(f'UMAP_gridspace_ICA_{ica_n_components}components', out_format='png',save=save_plots_bool)
 
 # %%
 neigh_mindist =  (4000, 0.99)
@@ -2040,7 +1395,6 @@ opts(interpolation='bilinear',aspect=1,fig_size=200)
 
 
 # %%
-import pdir
 a = hds.rasterize(X_umap_scatter,aggregator=ds.count(),dynamic=False,x_sampling=0.4, y_sampling=0.3).data.to_dataframe()
 display(a.describe())
 
@@ -2054,14 +1408,12 @@ ax.set_yscale('log')
 from sklearn import cluster
 from sklearn import preprocessing
 
-# data for classificatiom
-
+# data for classificatiom from different sources 
 # X_classification = X_pca # PCA
 # X_classification = S_ # ICA
-# X_classification = W # NFM # really noisy/bad!!
 # X_classification = X_tsne # tsne embedding
-# X_classification = X_umap # umap embedding
-X_classification = z_mean
+X_classification = X_umap # umap embedding
+
 n_classification_features = X_classification.shape[1]
 
 print('X_classification shape : ',X_classification.shape)
@@ -2072,8 +1424,8 @@ print('X_classification shape : ',X_classification.shape)
 ##########
 # scaler , preprocessing_type = preprocessing.StandardScaler().fit(X_classification)    , 'StandardScaler'
 # scaler , preprocessing_type = preprocessing.MinMaxScaler().fit(X_classification) , 'MinMaxScaler'
-# scaler , preprocessing_type = preprocessing.RobustScaler().fit(X_classification) , 'RobustScaler'
-scaler, preprocessing_type = preprocessing.FunctionTransformer(lambda x:x), 'None'
+scaler , preprocessing_type = preprocessing.RobustScaler().fit(X_classification) , 'RobustScaler'
+# scaler, preprocessing_type = preprocessing.FunctionTransformer(lambda x:x), 'None'
 
 # ##########################
 # classifier = 'K-Means'
@@ -2085,7 +1437,7 @@ scaler, preprocessing_type = preprocessing.FunctionTransformer(lambda x:x), 'Non
 
 ##########################
 classifier = 'AgglomerativeClustering'
-n_clusters = 13
+n_clusters = 3
 aggclustering = cluster.AgglomerativeClustering(linkage='complete',
                                                 affinity='l2',
                                                 n_clusters=n_clusters).fit(scaler.transform(X_classification))
@@ -2146,6 +1498,10 @@ for i,yf,ni in zip(range(len(y[:, feature_index])),y[:, feature_index],centroids
     print(f'{i:3}:{yf:.5f} > {ni:>4}')
 
 
+# %%
+# holoview import breaks matplotlib inline 
+# %matplotlib inline
+
 # %% tags=[]
 sns.set(style="ticks")
 
@@ -2164,31 +1520,9 @@ else:
     classes , s = np.unique(scatter_df['class'],return_counts=True)
     min_size, max_size = 20, 100
     sizes = (((s-s.min())/(s.max()-s.min()))*(max_size-min_size))+min_size
-    sns.scatterplot(x="feature_0", y="feature_1",hue="class", size='class', sizes=dict(zip(classes,sizes)), data=scatter_df, alpha=0.1);
+    sns.scatterplot(x="feature_0", y="feature_1",hue="class", size='class', sizes=dict(zip(classes,sizes)), data=scatter_df, alpha=0.1)
 
-save_plot( f'Classification-scatter-features-n_clusters_{n_clusters}_classifier-{classifier}', out_format='png',save=save_plots_bool)
-
-#   hv.extension('bokeh')
-# hv.extension('matplotlib')
-
-# df_ds = hv.Dataset(scatter_df,kdims=[f'feature_{x}' for x in range(n_classification_features)], vdims='class')
-
-# sampling = (df.max()-df.min()).describe().mean()/150
-
-# def local_datashade ( X,
-#                      aggregator=ds.mean(),
-#                      cmap=plt.cm.Spectral_r,
-#                      x_sampling=sampling,
-#                      y_sampling=sampling,
-#                      **kwargs):
-#     return hds.datashade(X,aggregator=aggregator,cmap=cmap,x_sampling=x_sampling,y_sampling=y_sampling, **kwargs)
-
-# point_grid = hv.operation.gridmatrix(
-#                                     df_ds, diagonal_operation=hv.operation.histogram.instance(num_bins=40)
-#                                     ).map(hds.datashade, hv.Scatter)
-# # # .opts(hv.opts.RGB(interpolation='bilinear',aspect=1,fig_size=200))
-
-# point_grid.opts(fig_size=300).opts(hv.opts.RGB(interpolation='bilinear',aspect=1))
+# save_plot( f'Classification-scatter-features-n_clusters_{n_clusters}_classifier-{classifier}', out_format='png',save=save_plots_bool)
 
 # %% tags=[]
 hv.extension('bokeh')
@@ -2201,71 +1535,6 @@ outdf_gdf[['x','y','R']].hvplot.scatter(x='x',y='y',c='R',
                     rasterize=True,aggregator='mean',dynamic=True,
                     x_sampling=2,y_sampling=1,cmap='rainbow',cnorm='eq_hist'
                     ).opts(height=600,width=1200,alpha=1)#*background.opts(cmap='Gray',alpha=.65)
-
-# %% [markdown] heading_collapsed=true tags=[] jp-MarkdownHeadingCollapsed=true
-# #### DBSCAN hypeparamter search
-
-# %% hidden=true
-## DBSCAN hypeparamter search
-
-eps = np.arange(0.9,1.1,.025)
-min_samples = [5,10,20,30]
-# min_samples = [10] 
-
-dbscan_stats = []
-
-for e in eps:
-    for ms in min_samples:
-#         dbscan = cluster.DBSCAN(eps=e).fit(X_classification)
-        dbscan = cluster.DBSCAN(eps=e,min_samples=ms).fit(X_classification)
-        unique, counts = np.unique(dbscan.labels_, return_counts=True)
-        stats = {'eps':e,
-                 'min_samples': ms,
-                 'n_clusters':len(unique),
-                 'pop_mean':np.mean(counts),
-                 'pop_std':np.std(counts),
-                 'pop_min':np.min(counts),
-                 'pop_max':np.max(counts)
-                }
-        
-        stats_df = pd.DataFrame([{
-                 'delta_feat_mean': np.mean(np.max(X_classification[dbscan.labels_ == val,:],axis=0)-np.min(X_classification[dbscan.labels_ == val,:],axis=0)),
-                 'delta_feat_std' :  np.std(np.max(X_classification[dbscan.labels_ == val,:],axis=0)-np.min(X_classification[dbscan.labels_ == val,:],axis=0)),
-                    }
-                    for val in np.unique(dbscan.labels_)],
-                  index=[val for val in np.unique(dbscan.labels_)])
-
-        stats.update(dict(zip([x+'_min' for x in stats_df.std().to_dict().keys()],stats_df.min().to_dict().values())))
-        stats.update(dict(zip([x+'_max' for x in stats_df.std().to_dict().keys()],stats_df.max().to_dict().values())))
-        stats.update(dict(zip([x+'_mean' for x in stats_df.std().to_dict().keys()],stats_df.mean().to_dict().values())))
-        stats.update( dict(zip( [x+'_std' for x in stats_df.std().to_dict().keys()], stats_df.std().to_dict().values())) )
-
-        dbscan_stats.append(stats)
-        print(e,ms)
-
-# stats_df = pd.DataFrame(dbscan_stats).set_index('eps')
-# display(stats_df.T)
-# stats_df.plot(figsize=[20,20],subplots=True);
-
-values='n_clusters'
-print(values)
-display(pd.DataFrame(dbscan_stats).pivot(index='eps', columns='min_samples', values=values).T)
-
-values='pop_mean'
-print(values)
-display(pd.DataFrame(dbscan_stats).pivot(index='eps', columns='min_samples', values=values).T)
-
-values='pop_std'
-print(values)
-display(pd.DataFrame(dbscan_stats).pivot(index='eps', columns='min_samples', values=values).T)
-
-values='pop_max'
-print(values)
-display(pd.DataFrame(dbscan_stats).pivot(index='eps', columns='min_samples', values=values).T)
-
-values='pop_min'
-print(values)
-display(pd.DataFrame(dbscan_stats).pivot(index='eps', columns='min_samples', values=values).T)
 
 # %% [markdown] heading_collapsed=true tags=[] jp-MarkdownHeadingCollapsed=true
 # ####  AgglomerativeClustering plot
@@ -2294,11 +1563,20 @@ plt.show()
 save_plot(f'{classifier}_dendrogram.png', out_format='png',save=save_plots_bool)
 
 
+# %% [markdown]
+# Load [scipy.cluster.hierarchy.inconsistent (SciPy v1.10.0)](https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.inconsistent.html).
+#
+# Calculate inconsistency statistics on a linkage matrix.
+#
+# This function behaves similarly to the MATLAB(TM) inconsistent function.
+#
+#     Y = inconsistent(Z) returns the inconsistency coefficient for each link of the hierarchical cluster tree Z generated by the linkage function. inconsistent calculates the inconsistency coefficient for each link by comparing its height with the average height of other links at the same level of the hierarchy. The larger the coefficient, the greater the difference between the objects connected by the link. For more information, see Algorithms.
+
 # %% hidden=true
 from scipy.cluster.hierarchy import inconsistent
 depth = 3
 incons = inconsistent(linkage_array, depth)
-incons[-10:]
+incons[-20:]
 
 
 # %% hidden=true tags=[]
@@ -2340,25 +1618,8 @@ fancy_dendrogram(
 plt.ylim([2000,6500])
 plt.show()
 
-# %% hidden=true
-last = linkage_array[-10:, 2]
-last_rev = last[::-1]
-idxs = np.arange(1, len(last) + 1)
-plt.plot(idxs, last_rev)
-
-acceleration = np.diff(last, 2)  # 2nd derivative of the distances
-acceleration_rev = acceleration[::-1]
-plt.plot(idxs[:-2] + 1, acceleration_rev)
-plt.show()
-k = acceleration_rev.argmax() + 2  # if idx 0 is the max of this we want 2 clusters
-print("clusters:", k)
-
-
 # %% [markdown] tags=[]
 # ####  Classification Vis
-
-# %% tags=[]
-[c for c in hv.Cycle.default_cycles.keys()]
 
 # %% tags=[]
 hv.extension('bokeh')
@@ -2368,9 +1629,9 @@ kdims=['wavelenght']
 width=1000
 height=500
 
+cm = plt.cm.Spectral_r
 colors = cm(np.linspace(0,1,len(np.unique(labels))))
 matplotlib.colors.LinearSegmentedColormap.from_list('Spectral',colors , N=len(np.unique(labels)))
-cm = plt.cm.Spectral_r
 cm_cycle = hv.Cycle([cm(c) for c in np.linspace(0,1,len(np.unique(labels)))])
 hv.Cycle.default_cycles['default_colors'] = cm_cycle
 
@@ -2441,12 +1702,6 @@ out
 
 # %% tags=[]
 hv.extension('bokeh')
-# opts(height=600,width=1000,alpha=0.7)
-
-
-out = background.opts(cmap='Gray')*df_shader(labels,cmap=cm).opts(hv.opts.RGB(aspect=2,fig_size=400,alpha=0.9,interpolation='bicubic'))
-out
-# hv.save(out,out_figure_path / f'Classification-map_n_clusters-{n_clusters}_classifier-{classifier}.png', dpi = 200)
 
 
 # %% tags=[]
@@ -2454,214 +1709,59 @@ outdf_gdf['labels'] = np.nan
 outdf_gdf.loc[spectral_df_nona_index,'labels'] = labels
 
 # %% tags=[]
-background.opts(cmap='Gray')*outdf_gdf[['x','y','labels']].hvplot.scatter(x='x',y='y',c='labels',
-                    rasterize=True,aggregator='mean',dynamic=False,
-                    x_sampling=1,y_sampling=1,cmap='rainbow',cnorm='eq_hist'
-                    ).opts(height=600,width=1200,alpha=.6)
+# data layer  on top, transparent 
+# basemap on the bottom, opaque.
 
-# %% tags=[]
 hv.extension('bokeh')
 
 out = background.opts(cmap='Gray')*df_shader(labels,cmap=cm).opts(height=600,width=1000,alpha=0.7)
 out
+
 # hv.save(out,out_figure_path / f'Classification-map_n_clusters-{n_clusters}_classifier-{classifier}.png', dpi = 200)
 
+
+# %% [markdown]
+# The following uses [hvPlot 0.8.2](https://hvplot.holoviz.org/). 
+#
+# From the documentation : 
+#
+#
+# A familiar and high-level API for data exploration and visualization hvPlot diagram
+#
+# <img src="https://hvplot.holoviz.org/assets/diagram.svg" width="600">
+#
+# `.hvplot()` is a powerful and interactive Pandas-like `.plot()` API
+#
+# By replacing `.plot()` with `.hvplot()` you get an interactive figure. Try it out below!
+
+# %% tags=[]
+# basemap on top , transparent 
+# data layer on the bottom, opaque.
+
+outdf_gdf[['x','y','labels']].hvplot.scatter(x='x',y='y',c='labels',
+                    rasterize=True,aggregator='mean',dynamic=False,
+                    x_sampling=1,y_sampling=1,cmap='Spectral_r',cnorm='eq_hist'
+                    ).opts(height=500,width=1000,alpha=1)*\
+background.opts(cmap='Gray',alpha=0.7)
+
+# %% [markdown]
+# Load [sklearn.metrics.silhouette_score (scikit-learn 1.2.0)](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.silhouette_score.html)
+#
+# Compute the mean Silhouette Coefficient of all samples.
+#
+# The Silhouette Coefficient is calculated using the mean intra-cluster distance (a) and the mean nearest-cluster distance (b) for each sample. 
+#
+# The Silhouette Coefficient for a sample is $(b - a) / max(a, b)$. To clarify, $b$ is the distance between $a$ sample and the nearest cluster that the sample is not a part of. Note that Silhouette Coefficient is only defined if number of labels is $2 <= n_labels <= n_samples - 1$.
+#
+# This function returns the mean Silhouette Coefficient over all samples. To obtain the values for each sample, use silhouette_samples.
+#
+# The best value is 1 and the worst value is -1. Values near 0 indicate overlapping clusters. Negative values generally indicate that a sample has been assigned to the wrong cluster, as a different cluster is more similar.
 
 # %%
 from sklearn import metrics
 metrics.silhouette_score(X_classification, labels, metric='euclidean')
 
 # %% [markdown]
-# ## VAE Neural Network - Keras
-
-# %% tags=[]
-# small_data == spectral_df[spectral_df_nonan]
-X = spectral_df.loc[spectral_df_nona_index]
-
-print(f'        outdf_gdf : {outdf_gdf.shape}')
-print(f'      spectral_df : {spectral_df.shape}')
-print(f'spectral_df_nonan : {spectral_df_nona_index.shape}') 
-
-
-# %% tags=[]
-import importlib
-# mdalibpy.ml.CovarianceThreshold
-
-mdalibpy.ml = importlib.reload(mdalibpy.ml)
-
-# %% tags=[]
-# X is [observation, features]
-X_corr = X.values
-print(f'{X_corr.shape=}')
-threshold=0.99
-cov_thres = mdalibpy.ml.CovarianceThreshold(threshold=threshold).fit(X_corr)
-print('threshold : {}\n'
-      'Original feat. / Low Corr. feat. : {}/{}\n'
-      'Ratio (Original / Low Corr) feat. : {:4.2f}'
-      .format(cov_thres.threshold,
-      X_corr.shape[1],
-      cov_thres.n_features_,
-      cov_thres.n_features_/X_corr.shape[1]))
-print('Correltation matrix statistics: ')
-print(cov_thres.get_statistics())
-
-
-# %% tags=[]
-il1 = np.tril_indices(X_corr.shape[1])
-frequencies, edges = np.histogram(cov_thres.get_corr_matrix()[il1], 128)
-hv.extension('bokeh')
-(
- hv.Image(cov_thres.get_corr_matrix(),label='Covariance Matrix')+\
- hv.Image(cov_thres.get_corr_matrix(masked=True),label='Covariance Matrix (x>{} masked)'.format(threshold))+\
- hv.Histogram((edges, frequencies),kdims=['values'])*hv.VLine(threshold)
-).opts(
-   hv.opts.Image(width=600,height=600,tools=['hover'],cmap='viridis'),
-   hv.opts.Points (color='black', marker='x', size=20),
-   hv.opts.RGB(width=600,height=600,tools=['hover']),
-   hv.opts.Histogram(width=1200,height=200),
-   hv.opts.VLine(color='red', line_width=4)
-).cols(1)
-
-# %% tags=[]
-# input for learning 
-X = spectral_df.loc[spectral_df_nona_index]
-
-# X = cov_thres.transform(X)
-# X = X_pca # PCA
-
-original_dim = X.shape[1] # original 784
-intermediate_dim = original_dim // 3 # original 256
-latent_dim = 2
-
-print(f'{X.shape=}')
-
+# not that bad actually...
 
 # %%
-import tensorflow as tf
-from tensorflow import keras
-from tensorflow.keras import layers
-
-class Sampling(layers.Layer):
-    """Uses (z_mean, z_log_var) to sample z, the vector encoding a digit."""
-
-    def call(self, inputs):
-        z_mean, z_log_var = inputs
-        batch = tf.shape(z_mean)[0]
-        dim = tf.shape(z_mean)[1]
-        epsilon = tf.keras.backend.random_normal(shape=(batch, dim))
-        return z_mean + tf.exp(0.5 * z_log_var) * epsilon
-
-
-# %%
-# # # train the VAE on spectral data
-# from sklearn.model_selection import train_test_split
-# x_train, x_test, y_train, y_test = train_test_split( X, y, test_size=1/10, random_state=42)
-
-# x_train = x_train.reshape(-1, original_dim) / 255.
-# x_test = x_test.reshape(-1, original_dim) / 255.
-# x_train.shape, y_train.shape, x_test.shape, y_test.shape, type(x_train), type(y_train), type(x_test), type(y_test)
-
-# %% tags=[]
-#Build the encoder
-
-encoder_inputs = keras.Input(shape=(original_dim,))
-x = layers.Dense(intermediate_dim, activation="relu")(encoder_inputs)
-z_mean = layers.Dense(latent_dim, name="z_mean")(x)
-z_log_var = layers.Dense(latent_dim, name="z_log_var")(x)
-z = Sampling()([z_mean, z_log_var])
-encoder = keras.Model(encoder_inputs, [z_mean, z_log_var, z], name="encoder")
-encoder.summary()
-
-# %% tags=[]
-#Build the decoder
-from keras.models import Sequential
-
-latent_inputs = keras.Input(shape=(latent_dim,))
-decoder_outputs = keras.Sequential([
-    layers.Dense(intermediate_dim, input_dim=latent_dim, activation='relu'),
-    layers.Dense(original_dim, activation='sigmoid')
-])(latent_inputs)
-
-decoder = keras.Model(latent_inputs, decoder_outputs, name="decoder")
-decoder.summary()
-
-
-# %% tags=[]
-# Define the VAE as a Model with a custom train_step
-
-class VAE(keras.Model):
-    def __init__(self, encoder, decoder, **kwargs):
-        super(VAE, self).__init__(**kwargs)
-        self.encoder = encoder
-        self.decoder = decoder
-        self.total_loss_tracker = keras.metrics.Mean(name="total_loss")
-        self.reconstruction_loss_tracker = keras.metrics.Mean(
-            name="reconstruction_loss"
-        )
-        self.kl_loss_tracker = keras.metrics.Mean(name="kl_loss")
-
-    @property
-    def metrics(self):
-        return [
-            self.total_loss_tracker,
-            self.reconstruction_loss_tracker,
-            self.kl_loss_tracker,
-        ]
-
-    def train_step(self, data):
-        with tf.GradientTape() as tape:
-            z_mean, z_log_var, z = self.encoder(data)
-            reconstruction = self.decoder(z)
-            reconstruction_loss = tf.reduce_mean(
-                tf.reduce_sum(
-                    keras.losses.binary_crossentropy(data, reconstruction),axis=-1
-                )
-            )
-            kl_loss = -0.5 * (1 + z_log_var - tf.square(z_mean) - tf.exp(z_log_var))
-            kl_loss = tf.reduce_mean(tf.reduce_sum(kl_loss, axis=1))
-            total_loss = reconstruction_loss + kl_loss
-        grads = tape.gradient(total_loss, self.trainable_weights)
-        self.optimizer.apply_gradients(zip(grads, self.trainable_weights))
-        self.total_loss_tracker.update_state(total_loss)
-        self.reconstruction_loss_tracker.update_state(reconstruction_loss)
-        self.kl_loss_tracker.update_state(kl_loss)
-        return {
-            "loss": self.total_loss_tracker.result(),
-            "reconstruction_loss": self.reconstruction_loss_tracker.result(),
-            "kl_loss": self.kl_loss_tracker.result(),
-        }
-
-
-
-# %% tags=[]
-vae = VAE(encoder, decoder)
-vae.compile(optimizer=keras.optimizers.Adam())
-
-
-# %% tags=[]
-vae.fit(X,
-        epochs=15,
-        batch_size=1280)
-# display a 2D plot of the digit classes in the latent space
-z_mean, _, _ = vae.encoder.predict(X)
-print(f'{z_mean.std(axis=0)=}')
-
-# %% tags=[]
-plt.figure(figsize=(12, 10))
-plt.scatter(z_mean[:, 0], z_mean[:, 1], c=labels)
-# plt.scatter(z_mean[:, 0], z_mean[:, 1])
-plt.colorbar()
-plt.xlabel("z[0]")
-plt.ylabel("z[1]")
-plt.show()
-
-# %% tags=[]
-z_mean_df = pd.DataFrame(data=z_mean)
-
-hds.spread(
-z_mean_df.hvplot.scatter(x='0',y='1',
-                    rasterize=True,aggregator='count',dynamic=True,
-                    x_sampling=1,y_sampling=1,cmap='rainbow'
-                    )
-          ,px=3)
-

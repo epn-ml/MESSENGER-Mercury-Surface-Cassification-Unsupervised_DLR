@@ -1,12 +1,6 @@
 ---
 abstract: |
-In this work we apply unsupervised learning techniques for  dimensionality reduction and clustering to remote sensing  hyperspectral Visible-Near Infrared (VNIR) reflectance spectra  datasets of the planet Mercury obtained by the MErcury Surface, Space  ENvironment, GEochemistry, and Ranging (MESSENGER) mission.
-This  approach produces cluster maps, which group different regions of the  surface based on the properties of their spectra as inferred during  the learning process.
-While results depend on the choice of model  parameters and available data, comparison to expert-generated geologic  maps shows that some clusters correspond to expert-mapped classes such  as smooth plains on Mercury.
-These automatically generated maps can  serve as a starting point or comparison for traditional methods of  creating geologic maps based on spectral patterns.
-The code and data  used in this work is available as python jupyter notebook on the  github public repository  [MESSENGER-Mercury-Surface-Cassification-Unsupervised_DLR](https://github.
-com/epn-ml/MESSENGER-Mercury-Surface-Cassification-Unsupervised_DLR)[^1] funded by the European Union's Horizon 2020 grant No 871149.
-
+In this work we apply unsupervised learning techniques for  dimensionality reduction and clustering to remote sensing  hyperspectral Visible-Near Infrared (VNIR) reflectance spectra  datasets of the planet Mercury obtained by the MErcury Surface, Space  ENvironment, GEochemistry, and Ranging (MESSENGER) mission.  This  approach produces cluster maps, which group different regions of the  surface based on the properties of their spectra as inferred during  the learning process.  While results depend on the choice of model  parameters and available data, comparison to expert-generated geologic  maps shows that some clusters correspond to expert-mapped classes such  as smooth plains on Mercury.  These automatically generated maps can  serve as a starting point or comparison for traditional methods of  creating geologic maps based on spectral patterns.  The code and data  used in this work is available as python jupyter notebook on the  github public repository  [MESSENGER-Mercury-Surface-Cassification-Unsupervised_DLR](https://github.  com/epn-ml/MESSENGER-Mercury-Surface-Cassification-Unsupervised_DLR)[^1] funded by the European Union's Horizon 2020 grant No 871149.
 address: |
   $^1$German Aerospace Center (DLR), Rutherfordstraße 2, 12489 Berlin,
   Germany\
@@ -18,14 +12,9 @@ bibliography:
 - biblio.biblatex
 title: Automated surface mapping via unsupervised learning and
   classification of Mercury Visible--Near-Infrared reflectance spectra
----
+numbersections: true
 
-::: frontmatter
-::: keyword
-Semi-automated ,surface ,mapping ,unsupervised learning ,classification
-,Mercury ,Visible--Near-Infrared ,reflectance ,spectra
-:::
-:::
+---
 
 # Introduction {#sec:4b.intro}
 
@@ -196,9 +185,9 @@ can apply our clustering algorithm to the entire surface, as shown in
 Figure [2](#fig:mascsglobalgrid){reference-type="ref"
 reference="fig:mascsglobalgrid"}.
 
-![](images/1a_overlay_kuiper_mascs.jpg){#fig:mascskuiper width="500px"}
+![](../reports/figures/1a_overlay_kuiper_mascs.jpg){#fig:mascskuiper width="500px"}
 
-![](images/1b_mascs_700nm_refl.png){#fig:mascsglobalgrid width="500px"}
+![](../reports/figures/1b_mascs_700nm_refl.png){#fig:mascsglobalgrid width="500px"}
 
 A typical workflow for doing a planetary science analysis starts with
 the definition of a number of Regions Of Interests (ROIs), followed by a
@@ -254,11 +243,11 @@ the entirety of the surface of the planet.
 
 ## Dimensionality reduction: ICA {#sec:4b.dimensionality_reduction_ica}
 
-![ICA reconstruction error.](images/ICA_reconstruction_error_zoom_included.png){#fig:ICA_reconstruction_error_zoom_included width="500px"}
+![ICA reconstruction error.](../reports/figures/ICA_reconstruction_error_zoom_included.png){#fig:ICA_reconstruction_error_zoom_included width="500px"}
 
-![ICA independent components.](images/ICA_components.png){#fig:ICA_components width="500px"}
+![ICA independent components.](../reports/figures/ICA_components.png){#fig:ICA_components width="500px"}
 
-![ICA weights coefficients map.](images/ICA_components_map.jpg){#fig:ICA_components_map width="500px"}
+![ICA weights coefficients map.](../reports/figures/ICA_components_map.jpg){#fig:ICA_components_map width="500px"}
 
 One way to discover salient patterns in a large set of multidimensional
 data is to perform dimensionality reduction. Two popular techniques for
@@ -470,19 +459,19 @@ After using UMAP to further reduce the representation of the dataset
 compressed using ICA, the final dimensionality of the dataset is
 \[$55399 \times 2$\].
 
-![$ICA_4$ weight coefficient density pair-plots.](images/ICA_coefficients_gridplot_density_complete.png){#fig:ICA_coefficients_gridplot_density_complete width="500px"}
+![$ICA_4$ weight coefficient density pair-plots.](../reports/figures/ICA_coefficients_gridplot_density_complete.png){#fig:ICA_coefficients_gridplot_density_complete width="500px"}
 
-![UMAP on $ICA_4$ exploring hyperparameters space.](images/UMAP_gridspace_ICA_4components.jpg){#fig:UMAP_gridspace_ICA_4components width="500px"}
+![UMAP on $ICA_4$ exploring hyperparameters space.](../reports/figures/UMAP_gridspace_ICA_4components.jpg){#fig:UMAP_gridspace_ICA_4components width="500px"}
 
 ## Cluster analysis {#sec:4b.clust}
 
-![Agglomerative Clustering labels on UMAP features.](images/Classification-scatter-features-n_clusters_3_classifier-AgglomerativeClustering.jpg){#fig:Classification-scatter-features-n_clusters_3_classifier-AgglomerativeClustering width="500px"}
+![Agglomerative Clustering labels on UMAP features.](../reports/figures/Classification-scatter-features-n_clusters_3_classifier-AgglomerativeClustering.jpg){#fig:Classification-scatter-features-n_clusters_3_classifier-AgglomerativeClustering width="500px"}
 
-![K-Means labels on UMAP features.](images/Classification-scatter-features-n_clusters_3_classifier-K-Means.jpg){#fig:Classification-scatter-features-n_clusters_3_classifier-K-Means width="500px"}
+![K-Means labels on UMAP features.](../reports/figures/Classification-scatter-features-n_clusters_3_classifier-K-Means.jpg){#fig:Classification-scatter-features-n_clusters_3_classifier-K-Means width="500px"}
 
-![Agglomerative Clustering centroids.](images/Spectral_centroids_n_clusters-3_AgglomerativeClustering.jpg){#fig:Spectral_centroids_n_clusters-3_AgglomerativeClustering width="500px"}
+![Agglomerative Clustering centroids.](../reports/figures/Spectral_centroids_n_clusters-3_AgglomerativeClustering.jpg){#fig:Spectral_centroids_n_clusters-3_AgglomerativeClustering width="500px"}
 
-![Agglomerative Clustering dendrogram.](images/AgglomerativeClustering_dendrogram.png){#fig:AgglomerativeClustering_dendrogram width="500px"}
+![Agglomerative Clustering dendrogram.](../reports/figures/AgglomerativeClustering_dendrogram.png){#fig:AgglomerativeClustering_dendrogram width="500px"}
 
 After reducing the dimensionality of the data, our final goal is to
 identify surface regions with similar spectral properties that we can
@@ -551,13 +540,13 @@ added noise), Density Based Spatial Clustering of Applications with
 Noise (DBSCAN) may give better results. DBSCAN separates core samples of
 high density regions and expands clusters from them.
 
-![Agglomerative Clustering 3 classes](images/Classification-map_n_clusters-3_classifier-AgglomerativeClustering.jpg){#fig:Classification-map_n_clusters-3_classifier-AgglomerativeClustering_comparison width="500px"}
+![Agglomerative Clustering 3 classes](../reports/figures/Classification-map_n_clusters-3_classifier-AgglomerativeClustering.jpg){#fig:Classification-map_n_clusters-3_classifier-AgglomerativeClustering_comparison width="500px"}
 
-![Agglomerative Clustering 12 Classes](images/Classification-map_n_clusters-12_classifier-AgglomerativeClustering.jpg){#fig:Classification-map_n_clusters-12_classifier-AgglomerativeClustering width="500px"}
+![Agglomerative Clustering 12 Classes](../reports/figures/Classification-map_n_clusters-12_classifier-AgglomerativeClustering.jpg){#fig:Classification-map_n_clusters-12_classifier-AgglomerativeClustering width="500px"}
 
-![Maximum surface temperature: red $>690$ K, brown $>550$ K, adapted from[@Vasavada1999]](images/temperature_mercury.jpg){#fig:max_temperature_mercury_map width="500px"}
+![Maximum surface temperature: red $>690$ K, brown $>550$ K, adapted from[@Vasavada1999]](../reports/figures/temperature_mercury.jpg){#fig:max_temperature_mercury_map width="500px"}
 
-![Mercury smooth plains, adapted from[@Denevi2013]](images/Denevi_smoot_plains_2013.jpg){#fig:Denevi_smoot_plains_2013 width="500px"}
+![Mercury smooth plains, adapted from[@Denevi2013]](../reports/figures/Denevi_smoot_plains_2013.jpg){#fig:Denevi_smoot_plains_2013 width="500px"}
 
 ## Conclusion {#sec:4b.conclusion}
 

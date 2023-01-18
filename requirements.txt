@@ -26,4 +26,5 @@ shapely
 scikit-image 
 scikit-learn
 umap-learn
-
+jupyterlab
+geoviews
