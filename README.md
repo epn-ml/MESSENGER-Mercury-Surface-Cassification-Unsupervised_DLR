@@ -7,6 +7,11 @@ Repository for the Science case from DLR with to understand the composition and 
 
 We aim to to extract the underlying information from this MESSENGER/MASCS infrared dataset using unsupervsed classification spectral data and combine/compare with chemical composition and surfaces ages inferred from crater counting.
 
+
+Please cite this code if you use it with [DOI: 10.5281/zenodo.7778172 ](https://doi.org/10.5281/zenodo.7778172)
+
+[![DOI](https://zenodo.org/badge/322645780.svg)](https://zenodo.org/badge/latestdoi/322645780)
+
 ## Quickstart
 
 The relevant analysis is done in `notebooks/mascs_classification_geojson.ipynb`.
