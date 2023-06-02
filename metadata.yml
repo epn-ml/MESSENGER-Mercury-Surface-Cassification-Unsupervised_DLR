@@ -1,0 +1,45 @@
+# metadata
+title: MESSENGER-MERCURY-SURFACE-CLASSIFICATION-UNSUPERVISED_DLR
+abstract: "This tool aim to to extract the underlying information from this MESSENGER/MASCS infrared dataset using unsupervsed classification spectral data and combine with other dataset"
+keyword: 
+  - "Planetary surfaces"
+  - "Surface composition"
+documentation: "https://github.com/epn-ml/MESSENGER-Mercury-Surface-Cassification-Unsupervised_DLR/blob/master/README.md"
+landingPage: "https://github.com/epn-ml/MESSENGER-Mercury-Surface-Cassification-Unsupervised_DLR"
+version: # major.minor.build (e.g. 0.1.0)
+issued: "2020-12-18"
+gitRepository: "https://github.com/epn-ml/MESSENGER-Mercury-Surface-Cassification-Unsupervised_DLR/"
+citation: "https://doi.org/10.5281/zenodo.7778172"
+copyright: "Apache License 2.0"
+distribution:
+  license: "Apache License 2.0"
+doi:
+  creator: "https://zenodo.org/"
+  notation: "10.5281/zenodo.7778172"
+  schemaAgency: "Zenodo"
+funding: "This project has received funding from the European Union's Horizon 2020 research and innovation programme under grant agreement No 871149."
+funder: "European Commission"
+project: "Europlanet 2024 RI"
+contactPoint:
+  email: "mario.damore@dlr.de"
+  id: "https://www.dlr.de/pf/en/desktopdefault.aspx/tabid-156/220_read-20492/sortby-lastname/"
+  organisation-name: "German Aerospace Center (DLR)"
+  role: "Scientific staff | PF Software Engineering Contact"
+  url: "https://www.dlr.de"
+creator:
+  homepage: "https://www.dlr.de"
+  id: "https://www.dlr.de/pf/en/desktopdefault.aspx/tabid-156/220_read-20492/sortby-lastname/"
+  logo: "https://www.dlr.de/dlr/en/portaldata/1/img/general/footer-text-logo-en.png"
+  name: "German Aerospace Center (DLR)"
+  nick: "DLR"
+author:
+    name: "Mario D'Amore"
+    email: "mario.damore@dlr.de"
+    URI: "https://orcid.org/0000-0001-9325-6889"
+    affiliation: "German Aerospace Center (DLR)"
+publisher:
+  homepage: #URL
+  id: #URI of the publisher
+  logo: #URI to logo image for the organisation
+  name: #name of the organisation
+  nick: #short name / acronym of organisation

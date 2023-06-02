@@ -1,0 +1,61 @@
+{
+    "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+    "@type": "SoftwareSourceCode",
+    "license": "https://spdx.org/licenses/GPL-2.0+",
+    "codeRepository": "https://github.com/epn-ml/MESSENGER-Mercury-Surface-Cassification-Unsupervised_DLR/",
+    "dateCreated": "2020-12-18",
+    "datePublished": "2020-12-18",
+    "dateModified": "2023-06-02",
+    "downloadUrl": "https://github.com/epn-ml/MESSENGER-Mercury-Surface-Cassification-Unsupervised_DLR/releases/tag/first_release_DOI_generation",
+    "issueTracker": "https://github.com/epn-ml/MESSENGER-Mercury-Surface-Cassification-Unsupervised_DLR/issues",
+    "funder":[
+    {
+      "@type": "Organization",
+      "name": "European Commission",
+      "@id": "https://doi.org/10.13039/501100000780"
+    }],
+    "funding": "871149",
+    "keywords": ["Europlanet", "Machine Learning", "jupyter-notebook", "", ""],
+    "name": "MESSENGER-Mercury-Surface-Cassification-Unsupervised_DLR",
+    "softwareVersion": "x.x.x",
+    "version": "x.x.x",
+    "description": "This tool aim to to extract the underlying information from this MESSENGER/MASCS infrared dataset using unsupervsed classification spectral data and combine with other dataset",
+    "readme": "https://github.com/epn-ml/MESSENGER-Mercury-Surface-Cassification-Unsupervised_DLR/blob/master/README.md",
+    "programmingLanguage": [
+        "Python 3"
+    ],
+    "operatingSystem": [
+        "Linux",
+        "MacOS"
+    ],
+    "softwareRequirements": [
+        "Docker, Jupyter, Python"
+    ],
+    "author": [
+        {
+            "@type": "Person",
+            "@id": "https://orcid.org/0000-0001-9325-6889",
+            "givenName": "Mario",
+            "familyName": "D'Amore",
+            "email": "mario.damore@dlr.de",
+            "affiliation": {
+                "@type": "DLR",
+                "name": "German Aerospace Center (DLR)"
+            }
+        }
+    ],
+    "maintainer": [
+        {
+            "@type": "Person",
+            "@id": "https://orcid.org/0000-0001-9325-6889",
+            "givenName": "Mario",
+            "familyName": "D'Amore",
+            "email": "mario.damore@dlr.de",
+            "affiliation": {
+                "@type": "DLR",
+                "name": "German Aerospace Center (DLR)"
+            }
+        }
+    ],
+    "citation": ["https://doi.org/10.5281/zenodo.7778172"]
+}
