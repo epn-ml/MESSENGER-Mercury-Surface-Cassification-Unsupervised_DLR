@@ -1,0 +1,32 @@
+name: messenger-mercury-surface-cassification-unsupervised_dlr
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - flake8
+  - python-dotenv[version='>=0.5.1']
+  - cartopy
+  - datashader
+  - fiona
+  - geopandas
+  - holoviews
+  - hvplot
+  - imageio
+  - matplotlib
+  - numpy
+  - pandas
+  - pillow
+  - scipy
+  - seaborn
+  - shapely
+  - scikit-image
+  - scikit-learn
+  - umap-learn
+  - jupyterlab
+  - geoviews
+  - python=3
+  - conda-lock
+  - ca-certificates
+  - certifi
+  - openssl
+prefix: /home/kidpixo/miniconda3/envs/messenger-mercury-surface-cassification-unsupervised_dlr
